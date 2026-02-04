@@ -19,31 +19,28 @@ export type Loop = {
 };
 
 export function loop(): Loop {
-  return {
-    phrases: [],
-    add: (phrase: Phrase) => {
-      this.phrases.push(phrase);
-      return this;
-    },
+  const me = { phrases: [] };
+  me.add = (phrase: Phrase) => {
+    me.phrases.push(phrase);
+    return me;
   };
+  return me;
 }
 
 export function phrase(): Phrase {
-  return {
-    measures: [],
-    add: (measure: Measure) => {
-      this.measures.push(measure);
-      return this;
-    },
+  const me = { measures: [] };
+  me.add = (measure: Measure) => {
+    me.measures.push(measure);
+    return me;
   };
+  return me;
 }
 
 export function measure(): Measure {
-  return {
-    beats: [],
-    add: (beat: Beat) => {
-      this.beats.push(beat);
-      return this;
-    },
+  const me = { beats: [] };
+  me.add = (beat: Beat) => {
+    me.beats.push(beat);
+    return me;
   };
+  return me;
 }
