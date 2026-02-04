@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import * as Tone from "tone";
 import "./App.css";
+import { loop, Loop, measure, phrase } from "./music.ts";
 
 function App() {
   const [started, setStarted] = useState(false);
-  const [loops, setLoops] = useState([]);
+  const [loops, setLoops] = useState<Loop[]>([loop().add(phrase().add(measure()))]);
   const bpm = 80;
 
   useEffect(() => {

@@ -5,23 +5,23 @@ export type Beat = {
 
 export type Measure = {
   beats: Array<Beat>;
-  beat: (beat: Beat) => Measure;
+  add: (beat: Beat) => Measure;
 };
 
 export type Phrase = {
   measures: Array<Measure>;
-  measure: (measure: Measure) => Phrase;
+  add: (measure: Measure) => Phrase;
 };
 
 export type Loop = {
   phrases: Array<Phrase>;
-  phrase: (phrase: Phrase) => Loop;
+  add: (phrase: Phrase) => Loop;
 };
 
 export function loop(): Loop {
   return {
     phrases: [],
-    phrase: (phrase: Phrase) => {
+    add: (phrase: Phrase) => {
       this.phrases.push(phrase);
       return this;
     },
@@ -31,7 +31,7 @@ export function loop(): Loop {
 export function phrase(): Phrase {
   return {
     measures: [],
-    measure: (measure: Measure) => {
+    add: (measure: Measure) => {
       this.measures.push(measure);
       return this;
     },
@@ -41,7 +41,7 @@ export function phrase(): Phrase {
 export function measure(): Measure {
   return {
     beats: [],
-    beat: (beat: Beat) => {
+    add: (beat: Beat) => {
       this.beats.push(beat);
       return this;
     },
