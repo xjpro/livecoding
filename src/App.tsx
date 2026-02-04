@@ -12,8 +12,8 @@ function App() {
           .add({ note: "A4", length: "4n" })
           .add({ note: "A4", length: "4n" })
           .add({ note: "A4", length: "4n" })
-          .add({ note: "A4", length: "4n" })
-      )
+          .add({ note: "A4", length: "4n" }),
+      ),
     ),
   ]);
   const bpm = 80;
@@ -21,7 +21,8 @@ function App() {
 
   useEffect(() => {
     // Set up Transport BPM
-    Tone.Transport.bpm.value = bpm;
+    const transport = Tone.getTransport();
+    transport.bpm.value = bpm;
 
     // Clean up any existing loops
     toneLoopsRef.current.forEach((toneLoop) => toneLoop.dispose());
@@ -71,10 +72,11 @@ function App() {
   }, [loops, bpm]);
 
   useEffect(() => {
+    const transport = Tone.getTransport();
     if (started) {
-      Tone.Transport.start();
+      transport.start();
     } else {
-      Tone.Transport.stop();
+      transport.stop();
     }
   }, [started]);
 
