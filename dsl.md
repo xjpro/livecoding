@@ -2,8 +2,17 @@
 
 Each command starts with an index to a track followed by a space. Should that track not exist it is created.
 
-Following the track index is one or more space-seperated command parts which set aspects of 
+Following the track index is one or more space-seperated command parts which set aspects of
 the track: voice, pattern, gain, speed, pan, prob, etc.
+
+## Global Commands
+
+Global commands don't require a track number and affect all subsequent tracks.
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `key:[note]` | Set global musical key | `key:C`, `key:F#`, `key:Bb` |
+| `scale:[name]` | Set global scale type | `scale:major`, `scale:minor` |
 
 ## Command Parts
 
@@ -18,6 +27,7 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 | Command | Description | Arguments |
 |---------|-------------|-----------|
 | `pulse:[hits]` or `pulse:[hits,beats]` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (defaults to 16 if omitted) |
+| `arp:[degrees]` | Creates an arpeggio pattern based on scale degrees | Comma-separated scale degrees (e.g., `arp:1,1,5,1` for I-I-V-I progression). Each degree gets 4 steps (one bar in 4/4 time). Uses chords built from the current key/scale. |
 
 ### Modifications
 
@@ -56,4 +66,22 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 ```
 0 start
 1 stop
+```
+
+### Arpeggio Patterns
+```
+# Set global key and scale
+key:C
+scale:major
+
+# Create bass line with I-I-V-I progression
+0 voice:bass arp:1,1,5,1
+
+# Try a more complex progression (I-vi-IV-V)
+1 voice:bass arp:1,6,4,5 gain:0.8
+
+# Change to minor key
+key:A
+scale:minor
+2 voice:bass arp:1,4,5,1
 ```

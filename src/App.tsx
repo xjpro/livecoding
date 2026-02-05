@@ -16,6 +16,8 @@ function App() {
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
   const [nextLogId, setNextLogId] = useState(0);
   const [kit, setKit] = useState<Kit | null>(null);
+  const [key, setKey] = useState("C");
+  const [scale, setScale] = useState("major");
 
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
@@ -57,6 +59,29 @@ function App() {
       status: "success",
     };
 
+    // Check for global commands first (key:, scale:)
+    if (input.startsWith("key:")) {
+      const newKey = input.substring(4).trim();
+      setKey(newKey);
+      logEntry.status = "success";
+      logEntry.command = `Set key to ${newKey}`;
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      setInput("");
+      return;
+    }
+
+    if (input.startsWith("scale:")) {
+      const newScale = input.substring(6).trim();
+      setScale(newScale);
+      logEntry.status = "success";
+      logEntry.command = `Set scale to ${newScale}`;
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      setInput("");
+      return;
+    }
+
     // Parse DSL: [trackId][whitespace][command parts...]
     const match = input.match(/^(\d+)\s+(.+)$/);
     if (!match) {
@@ -86,6 +111,8 @@ function App() {
       if (part.startsWith("voice:")) {
         voice = part.substring(6);
       } else if (part.startsWith("pulse:")) {
+        patternStr = part;
+      } else if (part.startsWith("arp:")) {
         patternStr = part;
       } else if (part.startsWith("gain:")) {
         gain = parseFloat(part.substring(5));
@@ -199,14 +226,10 @@ function App() {
     panner.toDestination();
 
     // Parse pattern
-    const pattern = parsePattern(finalPattern);
+    const pattern = parsePattern(finalPattern, key, scale);
 
-    // Pre-compute active steps to minimize work in the audio callback
-    const activeSteps = new Set(
-      pattern
-        .map((val, idx) => (val === 1 ? idx : -1))
-        .filter((idx) => idx !== -1),
-    );
+    // Check if pattern contains notes (strings) or just rhythm (numbers)
+    const isNotePattern = pattern.some((val) => typeof val === "string");
 
     // Create Tone.js sequence
     const sequence = new Tone.Sequence(
@@ -214,9 +237,20 @@ function App() {
         // Apply probability
         if (Math.random() > finalProb) return;
 
-        // Check if step is active
-        if (activeSteps.has(step)) {
-          triggerSynth(synth, time, voiceConfig);
+        const value = pattern[step % pattern.length];
+
+        if (isNotePattern) {
+          // Note-based pattern (arp)
+          if (typeof value === "string") {
+            // Trigger with the specific note
+            triggerSynth(synth, time, voiceConfig, value);
+          }
+          // If value is 0 or falsy, skip (rest)
+        } else {
+          // Rhythm-based pattern (pulse)
+          if (value === 1) {
+            triggerSynth(synth, time, voiceConfig);
+          }
         }
       },
       Array.from({ length: pattern.length }, (_, i) => i),

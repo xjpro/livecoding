@@ -28,9 +28,10 @@ export function triggerSynth(
   synth: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth,
   time: number,
   voiceConfig: VoiceConfig,
+  note?: string,
 ) {
   synth.triggerAttackRelease(
-    voiceConfig.trigger.note,
+    note ?? voiceConfig.trigger.note,
     voiceConfig.trigger.duration,
     time,
   );
