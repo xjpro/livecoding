@@ -17,11 +17,11 @@ export function createSynth(
       break;
     case "hat":
       synth = new Tone.MetalSynth({
-        envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
-        harmonicity: 5.1,
-        modulationIndex: 32,
-        resonance: 4000,
-        octaves: 1.5,
+        envelope: { attack: 0.001, decay: 0.05, release: 0.025 },
+        harmonicity: 12,
+        modulationIndex: 12,
+        resonance: 6000,
+        octaves: 2.5,
       }).toDestination();
       break;
     case "snare":
@@ -46,7 +46,7 @@ export function triggerSynth(
   if (synth instanceof Tone.MembraneSynth) {
     synth.triggerAttackRelease("C2", "8n", time);
   } else if (synth instanceof Tone.MetalSynth) {
-    synth.triggerAttackRelease("16n", time);
+    synth.triggerAttackRelease("G#6", "16n", time);
   } else {
     synth.triggerAttackRelease("C4", "8n", time);
   }
