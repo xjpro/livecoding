@@ -28,18 +28,19 @@ function App() {
     }
   }, [started]);
 
-  async function toggle() {
-    await Tone.start();
-    setStarted((started) => !started);
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const commandText = input.trim();
     if (!commandText) return; // Skip empty commands
 
-    let logEntry: CommandLogEntry = {
+    // Auto-start on first command
+    if (!started) {
+      await Tone.start();
+      setStarted(true);
+    }
+
+    const logEntry: CommandLogEntry = {
       id: nextLogId,
       timestamp: Date.now(),
       command: commandText,
@@ -253,10 +254,6 @@ function App() {
             placeholder="e.g. 0 voice:kick pulse:4 or 0 stop"
           />
         </form>
-
-        <div className="card">
-          <button onClick={toggle}>{started ? "Stop" : "Start"}</button>
-        </div>
       </div>
     </div>
   );
