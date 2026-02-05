@@ -17,7 +17,7 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 
 | Command | Description | Arguments |
 |---------|-------------|-----------|
-| `pulse:[hits,beats]` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (default 16) |
+| `pulse:[hits]` or `pulse:[hits,beats]` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (defaults to 16 if omitted) |
 
 ### Modifications
 
@@ -40,8 +40,8 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 
 ### Creating Tracks
 ```
-0/voice:kick pulse:4,16
-1/voice:hat pulse:16,16
+0/voice:kick pulse:4
+1/voice:hat pulse:16
 ```
 
 ### Modifying Tracks

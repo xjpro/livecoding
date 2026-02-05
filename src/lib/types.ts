@@ -7,4 +7,11 @@ export interface Track {
   dsl: string;
   sequence?: Tone.Part;
   isPlaying: boolean;
+  gain: number;
+  speed: number;
+  pan: number;
+  prob: number;
+  synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth;
+  volume?: Tone.Volume;
+  panner?: Tone.Panner;
 }

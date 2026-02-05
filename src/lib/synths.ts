@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 
-// Get or create synth for voice
+// Create synth for voice (not connected to destination)
 export function createSynth(
   voice: string,
 ): Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth {
@@ -13,7 +13,7 @@ export function createSynth(
         octaves: 10,
         oscillator: { type: "sine" },
         envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 },
-      }).toDestination();
+      });
       break;
     case "hat":
       synth = new Tone.MetalSynth({
@@ -22,7 +22,7 @@ export function createSynth(
         modulationIndex: 12,
         resonance: 6000,
         octaves: 2.5,
-      }).toDestination();
+      });
       break;
     case "snare":
       synth = new Tone.MembraneSynth({
@@ -30,10 +30,10 @@ export function createSynth(
         octaves: 6,
         oscillator: { type: "triangle" },
         envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.2 },
-      }).toDestination();
+      });
       break;
     default:
-      synth = new Tone.Synth().toDestination();
+      synth = new Tone.Synth();
   }
 
   return synth;

@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent, useRef } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import * as Tone from "tone";
 import "./App.css";
 import { parsePattern } from "./lib/patterns.ts";
@@ -10,9 +10,6 @@ function App() {
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [bpm] = useState(80);
-  const synthsRef = useRef<
-    Map<string, Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth>
-  >(new Map());
 
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
@@ -32,84 +29,118 @@ function App() {
     setStarted((started) => !started);
   }
 
-  function getSynth(
-    voice: string,
-  ): Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth {
-    if (synthsRef.current.has(voice)) {
-      return synthsRef.current.get(voice)!;
-    }
-
-    const synth = createSynth(voice);
-    synthsRef.current.set(voice, synth);
-    return synth;
-  }
-
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Check for command format: [trackId]/[command]
-    const commandMatch = input.match(/^(\d+)\/(start|stop)$/);
-    if (commandMatch) {
-      const trackId = parseInt(commandMatch[1]);
-      const command = commandMatch[2];
+    // Parse DSL: [trackId]/[command parts...]
+    const match = input.match(/^(\d+)\/(.+)$/);
+    if (!match) {
+      console.error("Invalid DSL format. Expected: [track#]/[command parts]");
+      return;
+    }
 
-      const existingTrack = tracks.find((t) => t.id === trackId);
+    const trackId = parseInt(match[1]);
+    const commandParts = match[2].trim().split(/\s+/);
+
+    // Parse command parts
+    let voice: string | null = null;
+    let patternStr: string | null = null;
+    let gain: number | null = null;
+    let speed: number | null = null;
+    let pan: number | null = null;
+    let prob: number | null = null;
+    let shouldStart = false;
+    let shouldStop = false;
+
+    for (const part of commandParts) {
+      if (part.startsWith("voice:")) {
+        voice = part.substring(6);
+      } else if (part.startsWith("pulse:")) {
+        patternStr = part;
+      } else if (part.startsWith("gain:")) {
+        gain = parseFloat(part.substring(5));
+      } else if (part.startsWith("speed:")) {
+        speed = parseFloat(part.substring(6));
+      } else if (part.startsWith("pan:")) {
+        pan = parseFloat(part.substring(4));
+      } else if (part.startsWith("prob:")) {
+        prob = parseFloat(part.substring(5));
+      } else if (part === "start") {
+        shouldStart = true;
+      } else if (part === "stop") {
+        shouldStop = true;
+      }
+    }
+
+    // Get existing track or prepare defaults
+    const existingTrack = tracks.find((t) => t.id === trackId);
+
+    // If only start/stop commands with no other changes
+    if (!voice && !patternStr && !gain && !speed && !pan && !prob) {
       if (!existingTrack) {
         console.error(`Track ${trackId} not found`);
         setInput("");
         return;
       }
 
-      if (command === "start") {
-        if (!existingTrack.isPlaying && existingTrack.sequence) {
-          const startTime = Tone.getTransport().state === "started" ? "@1m" : 0;
-          existingTrack.sequence.start(startTime);
-          setTracks((tracks) =>
-            tracks.map((t) =>
-              t.id === trackId ? { ...t, isPlaying: true } : t,
-            ),
-          );
-        }
-      } else if (command === "stop") {
-        if (existingTrack.isPlaying && existingTrack.sequence) {
-          const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
-          existingTrack.sequence.stop(stopTime);
-          setTracks((tracks) =>
-            tracks.map((t) =>
-              t.id === trackId ? { ...t, isPlaying: false } : t,
-            ),
-          );
-        }
+      if (shouldStart && !existingTrack.isPlaying && existingTrack.sequence) {
+        const startTime = Tone.getTransport().state === "started" ? "@1m" : 0;
+        existingTrack.sequence.start(startTime);
+        setTracks((tracks) =>
+          tracks.map((t) => (t.id === trackId ? { ...t, isPlaying: true } : t)),
+        );
+      }
+
+      if (shouldStop && existingTrack.isPlaying && existingTrack.sequence) {
+        const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
+        existingTrack.sequence.stop(stopTime);
+        setTracks((tracks) =>
+          tracks.map((t) =>
+            t.id === trackId ? { ...t, isPlaying: false } : t,
+          ),
+        );
       }
 
       setInput("");
       return;
     }
 
-    // Parse DSL: see dsl.md for more details
-    const match = input.match(/^(\d+)\/(\w+)\s+(.+)$/);
-    if (!match) {
-      console.error(
-        "Invalid DSL format. Expected: [track#]/[voice] [pattern] or [track#]/[start|stop]",
-      );
-      return;
-    }
+    // Merge with existing track properties
+    const finalVoice = voice ?? existingTrack?.voice ?? "kick";
+    const finalPattern = patternStr ?? existingTrack?.pattern ?? "pulse:4";
+    const finalGain = gain ?? existingTrack?.gain ?? 1;
+    const finalSpeed = speed ?? existingTrack?.speed ?? 1;
+    const finalPan = pan ?? existingTrack?.pan ?? 0;
+    const finalProb = prob ?? existingTrack?.prob ?? 1;
 
-    const trackId = parseInt(match[1]);
-    const voice = match[2];
-    const patternStr = match[3];
-
-    // Remove existing track with same ID
-    const existingTrack = tracks.find((t) => t.id === trackId);
+    // Dispose of old track resources if they exist
     if (existingTrack?.sequence) {
       const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
       existingTrack.sequence.stop(stopTime);
-      existingTrack.sequence?.dispose();
+      existingTrack.sequence.dispose();
+    }
+    if (existingTrack?.synth) {
+      existingTrack.synth.dispose();
+    }
+    if (existingTrack?.volume) {
+      existingTrack.volume.dispose();
+    }
+    if (existingTrack?.panner) {
+      existingTrack.panner.dispose();
     }
 
+    // Create audio chain: synth -> volume -> panner -> destination
+    const synth = createSynth(finalVoice);
+    const volume = new Tone.Volume(Tone.gainToDb(finalGain));
+    const panner = new Tone.Panner(finalPan);
+
+    // Connect the audio chain
+    synth.connect(volume);
+    volume.connect(panner);
+    panner.toDestination();
+
     // Parse pattern
-    const pattern = parsePattern(patternStr);
-    const synth = getSynth(voice);
+    const pattern = parsePattern(finalPattern);
 
     // Pre-compute active steps to minimize work in the audio callback
     const activeSteps = new Set(
@@ -118,10 +149,13 @@ function App() {
         .filter((idx) => idx !== -1),
     );
 
-    // Create Tone.js sequence - cleaner and more efficient for step sequencing
+    // Create Tone.js sequence
     const sequence = new Tone.Sequence(
       (time, step) => {
-        // Minimal work in audio callback - just a Set lookup (O(1))
+        // Apply probability
+        if (Math.random() > finalProb) return;
+
+        // Check if step is active
         if (activeSteps.has(step)) {
           triggerSynth(synth, time);
         }
@@ -132,21 +166,40 @@ function App() {
 
     sequence.loop = true;
 
-    // Start at the next measure if transport is running, otherwise at 0
-    if (Tone.getTransport().state === "started") {
-      sequence.start("@1m");
-    } else {
-      sequence.start(0);
+    // Apply speed modifier
+    sequence.playbackRate = finalSpeed;
+
+    // Determine if track should be playing
+    const willBePlaying = shouldStop
+      ? false
+      : shouldStart
+        ? true
+        : (existingTrack?.isPlaying ?? true);
+
+    // Start sequence if it should be playing
+    if (willBePlaying) {
+      if (Tone.getTransport().state === "started") {
+        sequence.start("@1m");
+      } else {
+        sequence.start(0);
+      }
     }
 
     // Update tracks
     const newTrack: Track = {
       id: trackId,
-      voice,
-      pattern: patternStr,
+      voice: finalVoice,
+      pattern: finalPattern,
       dsl: input,
       sequence,
-      isPlaying: true,
+      isPlaying: willBePlaying,
+      gain: finalGain,
+      speed: finalSpeed,
+      pan: finalPan,
+      prob: finalProb,
+      synth,
+      volume,
+      panner,
     };
 
     setTracks((tracks) => {
@@ -160,12 +213,21 @@ function App() {
   return (
     <>
       <div>
-        {tracks.map((track) => (
-          <div key={track.id}>
-            {track.id}/{track.voice} {track.pattern}{" "}
-            {track.isPlaying ? "▶" : "⏸"}
-          </div>
-        ))}
+        {tracks.map((track) => {
+          const modifiers = [];
+          if (track.gain !== 1) modifiers.push(`gain:${track.gain}`);
+          if (track.speed !== 1) modifiers.push(`speed:${track.speed}`);
+          if (track.pan !== 0) modifiers.push(`pan:${track.pan}`);
+          if (track.prob !== 1) modifiers.push(`prob:${track.prob}`);
+
+          return (
+            <div key={track.id}>
+              {track.id}/ voice:{track.voice} {track.pattern}{" "}
+              {modifiers.length > 0 && `${modifiers.join(" ")} `}
+              {track.isPlaying ? "▶" : "⏸"}
+            </div>
+          );
+        })}
       </div>
 
       <form onSubmit={submit}>
@@ -173,7 +235,7 @@ function App() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. 0/kick pulse(4,16) or 0/stop"
+          placeholder="e.g. 0/voice:kick pulse:4 or 0/stop"
         />
       </form>
 
