@@ -1,8 +1,8 @@
 # DSL for interacting with this step sequence engine
 
-Each command starts with an index to a track followed by a slash. Should that track not exist it is created.
+Each command starts with an index to a track followed by a space. Should that track not exist it is created.
 
-Following the slash is 1 or more space-seperated command parts which set aspects of 
+Following the track index is one or more space-seperated command parts which set aspects of 
 the track: voice, pattern, gain, speed, pan, prob, etc.
 
 ## Command Parts
@@ -40,19 +40,19 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 
 ### Creating Tracks
 ```
-0/voice:kick pulse:4
-1/voice:hat pulse:16
+0 voice:kick pulse:4
+1 voice:hat pulse:16
 ```
 
 ### Modifying Tracks
 ```
-0/gain:1 start
-0/speed:2 gain:0.5
-1/speed:0.5 prob:0.9 start
+0 gain:1 start
+0 speed:2 gain:0.5
+1 speed:0.5 prob:0.9 start
 ```
 
 ### Control Commands
 ```
-0/start
-1/stop
+0 start
+1 stop
 ```

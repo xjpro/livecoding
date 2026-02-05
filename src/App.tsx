@@ -32,10 +32,10 @@ function App() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Parse DSL: [trackId]/[command parts...]
-    const match = input.match(/^(\d+)\/(.+)$/);
+    // Parse DSL: [trackId][whitespace][command parts...]
+    const match = input.match(/^(\d+)\s+(.+)$/);
     if (!match) {
-      console.error("Invalid DSL format. Expected: [track#]/[command parts]");
+      console.error("Invalid DSL format. Expected: [track#] [command parts]");
       return;
     }
 
@@ -235,7 +235,7 @@ function App() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. 0/voice:kick pulse:4 or 0/stop"
+          placeholder="e.g. 0 voice:kick pulse:4 or 0 stop"
         />
       </form>
 
