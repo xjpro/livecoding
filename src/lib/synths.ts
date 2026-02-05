@@ -17,7 +17,6 @@ export function createSynth(
       break;
     case "hat":
       synth = new Tone.MetalSynth({
-        frequency: 200,
         envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
         harmonicity: 5.1,
         modulationIndex: 32,

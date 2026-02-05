@@ -85,7 +85,13 @@ function App() {
 
     sequence.loop = true;
     sequence.loopEnd = pattern.length * Tone.Time("16n").toSeconds();
-    sequence.start(0);
+
+    // Start at the next bar if transport is running, otherwise at 0
+    if (Tone.getTransport().state === "started") {
+      sequence.start("@1m");
+    } else {
+      sequence.start(0);
+    }
 
     // Update tracks
     const newTrack: Track = {
