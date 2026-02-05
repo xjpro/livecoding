@@ -7,63 +7,52 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 
 ## Command Parts
 
-### `voice:[voice-name]`
+### Voices
 
-Set the voice of the track.
+| Command | Description | Available Values |
+|---------|-------------|------------------|
+| `voice:[name]` | Set the voice/instrument | `kick`, `hat`, `snare` |
 
-### Voice Names
+### Patterns
 
-- kick
-- hat
-- snare
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `pulse:[hits,beats]` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (default 16) |
 
-### `pulse:[hits,beats]`
+### Modifications
 
-Set the pattern of the track to a pulse.
+| Command | Range | Description |
+|---------|-------|-------------|
+| `gain:[value]` | 0 to 1 | Volume control (0 = silent, 1 = full volume) |
+| `speed:[value]` | 0 to n | Tempo multiplier (1 = normal, 2 = double speed, 0.5 = half speed) |
+| `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right) |
+| `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance) |
 
-`[pattern-name]:[arg1],[arg2],[arg3],etc.`
+### Control Commands
+
+| Command | Description |
+|---------|-------------|
+| `start` | Start playback if stopped |
+| `stop` | Stop playback if started |
 
 
-## Mods
+## Examples
 
-- gain:[0 to 1] - volume control where 0 is no volume and 1 is full volume
-- speed:[0 to n] - tempo multiplier
-- pan:[-1 to 1] - placement in stereo field where -1 is left, 0 is center, 1 is right
-- prob:[0 to 1] - probably of dropping hits to add variation
-
-
-## Adding tracks
-
+### Creating Tracks
 ```
-# = track id
-
-#/[voice] [...pattern] [...mods]
-
-Examples:
-
-0/kick pulse:4,16
-1/hat pulse:16,16
+0/voice:kick pulse:4,16
+1/voice:hat pulse:16,16
 ```
 
-## Commands to tracks
-
-Space seperated list of modifications.
-
+### Modifying Tracks
 ```
-# = track id
+0/gain:1 start
+0/speed:2 gain:0.5
+1/speed:0.5 prob:0.9 start
+```
 
-
-#/start - start if stopped
-#/stop - stop if started
-#/gain:0.5
-
-
-Examples: 
-
+### Control Commands
+```
 0/start
 1/stop
-0/gain:1 start
-0/speed:2 gain:.5
-1/speed:.5 prob:.9 start
-
 ```
