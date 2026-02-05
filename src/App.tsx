@@ -47,10 +47,51 @@ function App() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // Check for command format: [trackId]/[command]
+    const commandMatch = input.match(/^(\d+)\/(start|stop)$/);
+    if (commandMatch) {
+      const trackId = parseInt(commandMatch[1]);
+      const command = commandMatch[2];
+
+      const existingTrack = tracks.find((t) => t.id === trackId);
+      if (!existingTrack) {
+        console.error(`Track ${trackId} not found`);
+        setInput("");
+        return;
+      }
+
+      if (command === "start") {
+        if (!existingTrack.isPlaying && existingTrack.sequence) {
+          const startTime = Tone.getTransport().state === "started" ? "@1m" : 0;
+          existingTrack.sequence.start(startTime);
+          setTracks((tracks) =>
+            tracks.map((t) =>
+              t.id === trackId ? { ...t, isPlaying: true } : t,
+            ),
+          );
+        }
+      } else if (command === "stop") {
+        if (existingTrack.isPlaying && existingTrack.sequence) {
+          const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
+          existingTrack.sequence.stop(stopTime);
+          setTracks((tracks) =>
+            tracks.map((t) =>
+              t.id === trackId ? { ...t, isPlaying: false } : t,
+            ),
+          );
+        }
+      }
+
+      setInput("");
+      return;
+    }
+
     // Parse DSL: see dsl.md for more details
     const match = input.match(/^(\d+)\/(\w+)\s+(.+)$/);
     if (!match) {
-      console.error("Invalid DSL format. Expected: [track#]/[voice] [pattern]");
+      console.error(
+        "Invalid DSL format. Expected: [track#]/[voice] [pattern] or [track#]/[start|stop]",
+      );
       return;
     }
 
@@ -105,6 +146,7 @@ function App() {
       pattern: patternStr,
       dsl: input,
       sequence,
+      isPlaying: true,
     };
 
     setTracks((tracks) => {
@@ -120,7 +162,8 @@ function App() {
       <div>
         {tracks.map((track) => (
           <div key={track.id}>
-            {track.id}/{track.voice} - {track.pattern}
+            {track.id}/{track.voice} - {track.pattern}{" "}
+            {track.isPlaying ? "▶" : "⏸"}
           </div>
         ))}
       </div>
@@ -130,9 +173,8 @@ function App() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. 0/kick pulse(4,16)"
+          placeholder="e.g. 0/kick pulse(4,16) or 0/stop"
         />
-        <button type="submit">Add</button>
       </form>
 
       <div className="card">

@@ -6,4 +6,5 @@ export interface Track {
   pattern: string;
   dsl: string;
   sequence?: Tone.Part;
+  isPlaying: boolean;
 }

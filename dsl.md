@@ -1,21 +1,37 @@
 ## Patterns
 
 - pulse(hits, steps = 16) 
-- 
 
 
-## Adding
+## Mods
+
+
+## Adding tracks
 
 ```
-[track#]/[voice] [...pattern] | [...mods]
-0/kick pulse(4,16)
+# = track id
+
+#/[voice] [...pattern] [...mods]
+
+Examples:
+
+0/kick pulse(4,16) 
 1/hat pulse(16,16)
 ```
 
-## Modifying
+## Commands to tracks
 
 ```
-[track#]: [...pattern] | [...mods]
-0/ | 
+# = track id
+
+#/start - start if stopped
+#/stop - stop if started
+#/mod [...mods] - add 1 or more mods
+
+Examples: 
+
+0/start
+1/stop
+
 
 ```
