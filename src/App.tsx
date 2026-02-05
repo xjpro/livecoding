@@ -162,7 +162,7 @@ function App() {
       <div>
         {tracks.map((track) => (
           <div key={track.id}>
-            {track.id}/{track.voice} - {track.pattern}{" "}
+            {track.id}/{track.voice} {track.pattern}{" "}
             {track.isPlaying ? "▶" : "⏸"}
           </div>
         ))}
