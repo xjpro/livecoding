@@ -3,26 +3,26 @@
   "synthType": "Synth",
   "synthParams": {
     "oscillator": {
-      "type": "triangle"
+      "type": "sine"
     },
     "envelope": {
-      "attack": 0.02,
-      "decay": 0.15,
-      "sustain": 0.4,
-      "release": 0.3
+      "attack": 0.04,
+      "decay": 0.1,
+      "sustain": 0.7,
+      "release": 0.35
     },
     "filter": {
       "type": "lowpass",
-      "frequency": 400,
-      "Q": 1
+      "frequency": 280,
+      "Q": 0.5
     },
     "filterEnvelope": {
-      "attack": 0.05,
-      "decay": 0.2,
-      "sustain": 0.3,
-      "release": 0.3,
-      "baseFrequency": 100,
-      "octaves": 1.5
+      "attack": 0.08,
+      "decay": 0.3,
+      "sustain": 0.4,
+      "release": 0.25,
+      "baseFrequency": 80,
+      "octaves": 1
     }
   },
   "trigger": {

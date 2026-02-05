@@ -3,17 +3,17 @@
   "synthType": "MetalSynth",
   "synthParams": {
     "envelope": {
-      "attack": 0.002,
-      "decay": 0.08,
-      "release": 0.04
+      "attack": 0.005,
+      "decay": 0.06,
+      "release": 0.02
     },
-    "harmonicity": 8,
-    "modulationIndex": 8,
-    "resonance": 3000,
-    "octaves": 1.5
+    "harmonicity": 3.5,
+    "modulationIndex": 4,
+    "resonance": 1800,
+    "octaves": 1
   },
   "trigger": {
-    "note": "F#5",
+    "note": "D5",
     "duration": "32n"
   }
 }

@@ -2,20 +2,20 @@
   "name": "kick",
   "synthType": "MembraneSynth",
   "synthParams": {
-    "pitchDecay": 0.08,
-    "octaves": 6,
+    "pitchDecay": 0.05,
+    "octaves": 3.5,
     "oscillator": {
       "type": "sine"
     },
     "envelope": {
-      "attack": 0.005,
-      "decay": 0.3,
-      "sustain": 0.05,
-      "release": 0.8
+      "attack": 0.015,
+      "decay": 0.6,
+      "sustain": 0.15,
+      "release": 0.4
     }
   },
   "trigger": {
-    "note": "C1",
+    "note": "A1",
     "duration": "8n"
   }
 }
