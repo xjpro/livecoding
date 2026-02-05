@@ -11,6 +11,7 @@ export interface Track {
   speed: number;
   pan: number;
   prob: number;
+  offset: number;
   synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth;
   volume?: Tone.Volume;
   panner?: Tone.Panner;

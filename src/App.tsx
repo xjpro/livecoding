@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import * as Tone from "tone";
 import "./App.css";
-import { parsePattern } from "./lib/patterns.ts";
+import { parsePattern, applyOffset } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
 import { Track, Kit } from "./lib/types.ts";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
@@ -12,7 +12,7 @@ function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [bpm] = useState(80);
+  const [bpm] = useState(60);
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
   const [nextLogId, setNextLogId] = useState(0);
   const [kit, setKit] = useState<Kit | null>(null);
@@ -104,6 +104,7 @@ function App() {
     let speed: number | null = null;
     let pan: number | null = null;
     let prob: number | null = null;
+    let offset: number | null = null;
     let shouldStart = false;
     let shouldStop = false;
 
@@ -122,6 +123,8 @@ function App() {
         pan = parseFloat(part.substring(4));
       } else if (part.startsWith("prob:")) {
         prob = parseFloat(part.substring(5));
+      } else if (part.startsWith("offset:")) {
+        offset = parseInt(part.substring(7));
       } else if (part === "start") {
         shouldStart = true;
       } else if (part === "stop") {
@@ -133,7 +136,7 @@ function App() {
     const existingTrack = tracks.find((t) => t.id === trackId);
 
     // If only start/stop commands with no other changes
-    if (!voice && !patternStr && !gain && !speed && !pan && !prob) {
+    if (!voice && !patternStr && !gain && !speed && !pan && !prob && offset === null) {
       if (!existingTrack) {
         logEntry.status = "error";
         logEntry.errorMessage = `Track ${trackId} not found`;
@@ -176,6 +179,7 @@ function App() {
     const finalSpeed = speed ?? existingTrack?.speed ?? 1;
     const finalPan = pan ?? existingTrack?.pan ?? 0;
     const finalProb = prob ?? existingTrack?.prob ?? 1;
+    const finalOffset = offset ?? existingTrack?.offset ?? 0;
 
     // Get voice configuration from kit
     if (!kit) {
@@ -225,8 +229,9 @@ function App() {
     volume.connect(panner);
     panner.toDestination();
 
-    // Parse pattern
-    const pattern = parsePattern(finalPattern, key, scale);
+    // Parse pattern and apply offset
+    const basePattern = parsePattern(finalPattern, key, scale);
+    const pattern = applyOffset(basePattern, finalOffset);
 
     // Check if pattern contains notes (strings) or just rhythm (numbers)
     const isNotePattern = pattern.some((val) => typeof val === "string");
@@ -290,6 +295,7 @@ function App() {
       speed: finalSpeed,
       pan: finalPan,
       prob: finalProb,
+      offset: finalOffset,
       synth,
       volume,
       panner,

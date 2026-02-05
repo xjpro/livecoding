@@ -37,6 +37,7 @@ Global commands don't require a track number and affect all subsequent tracks.
 | `speed:[value]` | 0 to n | Tempo multiplier (1 = normal, 2 = double speed, 0.5 = half speed) |
 | `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right) |
 | `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance) |
+| `offset:[steps]` | 0 to n | Shift pattern forward by N steps (wraps around) |
 
 ### Control Commands
 
@@ -53,6 +54,20 @@ Global commands don't require a track number and affect all subsequent tracks.
 0 voice:kick pulse:4
 1 voice:hat pulse:16
 2 voice:bass pulse:8
+```
+
+### Standard Rock Beat
+```
+0 voice:kick pulse:2         # Bass drum on beats 1 and 3
+1 voice:snare pulse:2 offset:4   # Snare on beats 2 and 4 (offset by 4 steps)
+2 voice:hat pulse:8          # Hi-hat on eighth notes
+```
+
+### Experimenting with Offset
+```
+0 voice:kick pulse:4
+0 offset:2    # Shift the kick pattern by 2 steps
+0 offset:0    # Shift it back to the original position
 ```
 
 ### Modifying Tracks

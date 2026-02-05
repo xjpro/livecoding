@@ -48,6 +48,17 @@ function generatePulse(hits: number, steps: number): number[] {
   return pattern;
 }
 
+// Apply offset to a pattern by rotating it
+export function applyOffset(pattern: PatternValue[], offset: number): PatternValue[] {
+  if (offset === 0 || pattern.length === 0) return pattern;
+
+  // Normalize offset to be within pattern length
+  const normalizedOffset = ((offset % pattern.length) + pattern.length) % pattern.length;
+
+  // Rotate the pattern
+  return [...pattern.slice(normalizedOffset), ...pattern.slice(0, normalizedOffset)];
+}
+
 // Generate arpeggio pattern based on scale degrees
 // Each degree gets 4 steps (one bar in 4/4 time)
 function generateArp(
