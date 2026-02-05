@@ -58,9 +58,9 @@ Global commands don't require a track number and affect all subsequent tracks.
 
 ### Standard Rock Beat
 ```
-0 voice:kick pulse:2         # Bass drum on beats 1 and 3
-1 voice:snare pulse:2 offset:4   # Snare on beats 2 and 4 (offset by 4 steps)
-2 voice:hat pulse:8          # Hi-hat on eighth notes
+0 voice:kick pulse:8         # Bass drum on beats 1 and 3
+1 voice:snare pulse:8 offset:2   # Snare on beats 2 and 4 (offset by 2 steps)
+2 voice:hat pulse:16          # Hi-hat on 16th notes
 ```
 
 ### Experimenting with Offset

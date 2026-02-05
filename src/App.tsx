@@ -136,7 +136,15 @@ function App() {
     const existingTrack = tracks.find((t) => t.id === trackId);
 
     // If only start/stop commands with no other changes
-    if (!voice && !patternStr && !gain && !speed && !pan && !prob && offset === null) {
+    if (
+      !voice &&
+      !patternStr &&
+      !gain &&
+      !speed &&
+      !pan &&
+      !prob &&
+      offset === null
+    ) {
       if (!existingTrack) {
         logEntry.status = "error";
         logEntry.errorMessage = `Track ${trackId} not found`;
@@ -207,16 +215,24 @@ function App() {
     if (existingTrack?.sequence) {
       const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
       existingTrack.sequence.stop(stopTime);
-      existingTrack.sequence.dispose();
+      setTimeout(() => {
+        existingTrack.sequence?.dispose();
+      }, 1000);
     }
     if (existingTrack?.synth) {
-      existingTrack.synth.dispose();
+      setTimeout(() => {
+        existingTrack.synth?.dispose();
+      }, 1000);
     }
     if (existingTrack?.volume) {
-      existingTrack.volume.dispose();
+      setTimeout(() => {
+        existingTrack.volume?.dispose();
+      }, 1000);
     }
     if (existingTrack?.panner) {
-      existingTrack.panner.dispose();
+      setTimeout(() => {
+        existingTrack.panner?.dispose();
+      }, 1000);
     }
 
     // Create audio chain: synth -> volume -> panner -> destination
