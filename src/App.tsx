@@ -47,10 +47,10 @@ function App() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Parse DSL: [track#]:[voice] [pattern]
-    const match = input.match(/^(\d+):(\w+)\s+(.+)$/);
+    // Parse DSL: see dsl.md for more details
+    const match = input.match(/^(\d+)\/(\w+)\s+(.+)$/);
     if (!match) {
-      console.error("Invalid DSL format. Expected: [track#]:[voice] [pattern]");
+      console.error("Invalid DSL format. Expected: [track#]/[voice] [pattern]");
       return;
     }
 
@@ -117,11 +117,10 @@ function App() {
 
   return (
     <>
-      <h1>Vite + React</h1>
       <div>
         {tracks.map((track) => (
           <div key={track.id}>
-            Track {track.id}: {track.voice} - {track.pattern}
+            {track.id}/{track.voice} - {track.pattern}
           </div>
         ))}
       </div>
@@ -131,7 +130,7 @@ function App() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. 0:kick pulse(4,16)"
+          placeholder="e.g. 0/kick pulse(4,16)"
         />
         <button type="submit">Add</button>
       </form>
