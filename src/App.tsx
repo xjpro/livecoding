@@ -9,15 +9,14 @@ function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [bpm] = useState(80);
   const synthsRef = useRef<
     Map<string, Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth>
   >(new Map());
 
-  const bpm = 80;
-
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
-  }, []);
+  }, [bpm]);
 
   useEffect(() => {
     const transport = Tone.getTransport();
@@ -62,31 +61,37 @@ function App() {
     // Remove existing track with same ID
     const existingTrack = tracks.find((t) => t.id === trackId);
     if (existingTrack?.sequence) {
-      existingTrack.sequence.stop();
-      existingTrack.sequence.dispose();
+      const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
+      existingTrack.sequence.stop(stopTime);
+      existingTrack.sequence?.dispose();
     }
 
     // Parse pattern
     const pattern = parsePattern(patternStr);
     const synth = getSynth(voice);
 
-    // Create Tone.js sequence
-    const sequence = new Tone.Part(
-      (time, value) => {
-        if (value === 1) {
+    // Pre-compute active steps to minimize work in the audio callback
+    const activeSteps = new Set(
+      pattern
+        .map((val, idx) => (val === 1 ? idx : -1))
+        .filter((idx) => idx !== -1),
+    );
+
+    // Create Tone.js sequence - cleaner and more efficient for step sequencing
+    const sequence = new Tone.Sequence(
+      (time, step) => {
+        // Minimal work in audio callback - just a Set lookup (O(1))
+        if (activeSteps.has(step)) {
           triggerSynth(synth, time);
         }
       },
-      pattern.map((value, index) => [
-        index * Tone.Time("16n").toSeconds(),
-        value,
-      ]),
+      Array.from({ length: pattern.length }, (_, i) => i),
+      "16n", // Each step is a 16th note
     );
 
     sequence.loop = true;
-    sequence.loopEnd = pattern.length * Tone.Time("16n").toSeconds();
 
-    // Start at the next bar if transport is running, otherwise at 0
+    // Start at the next measure if transport is running, otherwise at 0
     if (Tone.getTransport().state === "started") {
       sequence.start("@1m");
     } else {
