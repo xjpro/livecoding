@@ -21,20 +21,10 @@ export function CommandLog({ entries }: CommandLogProps) {
 
   return (
     <div className="command-log">
-      <div className="command-log-header">
-        <span>History</span>
-        <span className="command-log-count">({entries.length})</span>
-      </div>
       <div className="command-log-entries">
         {entries.slice(-20).map((entry) => (
           <div key={entry.id} className={`command-log-entry ${entry.status}`}>
-            <span className="entry-number">{entry.id}</span>
             <span className="entry-command">{entry.command}</span>
-            {entry.status === "error" && (
-              <span className="entry-error" title={entry.errorMessage}>
-                ⚠
-              </span>
-            )}
           </div>
         ))}
         <div ref={logEndRef} />

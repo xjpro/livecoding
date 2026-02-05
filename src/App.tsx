@@ -184,7 +184,7 @@ function App() {
 
         // Check if step is active
         if (activeSteps.has(step)) {
-          triggerSynth(synth, time);
+          triggerSynth(synth, time, finalVoice);
         }
       },
       Array.from({ length: pattern.length }, (_, i) => i),

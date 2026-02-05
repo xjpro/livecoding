@@ -11,7 +11,7 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 
 | Command | Description | Available Values |
 |---------|-------------|------------------|
-| `voice:[name]` | Set the voice/instrument | `kick`, `hat`, `snare` |
+| `voice:[name]` | Set the voice/instrument | `kick`, `hat`, `snare`, `bass` |
 
 ### Patterns
 
@@ -42,6 +42,7 @@ the track: voice, pattern, gain, speed, pan, prob, etc.
 ```
 0 voice:kick pulse:4
 1 voice:hat pulse:16
+2 voice:bass pulse:8
 ```
 
 ### Modifying Tracks
