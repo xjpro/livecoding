@@ -4,12 +4,16 @@ import "./App.css";
 import { parsePattern } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
 import { Track } from "./lib/types.ts";
+import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
+import { TrackList } from "./components/TrackList.tsx";
 
 function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [bpm] = useState(80);
+  const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
+  const [nextLogId, setNextLogId] = useState(0);
 
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
@@ -32,10 +36,25 @@ function App() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const commandText = input.trim();
+    if (!commandText) return; // Skip empty commands
+
+    let logEntry: CommandLogEntry = {
+      id: nextLogId,
+      timestamp: Date.now(),
+      command: commandText,
+      status: "success",
+    };
+
     // Parse DSL: [trackId][whitespace][command parts...]
     const match = input.match(/^(\d+)\s+(.+)$/);
     if (!match) {
-      console.error("Invalid DSL format. Expected: [track#] [command parts]");
+      logEntry.status = "error";
+      logEntry.errorMessage =
+        "Invalid format. Expected: [track#] [command parts]";
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      console.error(logEntry.errorMessage);
       return;
     }
 
@@ -78,7 +97,11 @@ function App() {
     // If only start/stop commands with no other changes
     if (!voice && !patternStr && !gain && !speed && !pan && !prob) {
       if (!existingTrack) {
-        console.error(`Track ${trackId} not found`);
+        logEntry.status = "error";
+        logEntry.errorMessage = `Track ${trackId} not found`;
+        setCommandLog((prev) => [...prev, logEntry]);
+        setNextLogId((id) => id + 1);
+        console.error(logEntry.errorMessage);
         setInput("");
         return;
       }
@@ -101,6 +124,9 @@ function App() {
         );
       }
 
+      // After the stop command block
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
       setInput("");
       return;
     }
@@ -207,42 +233,32 @@ function App() {
       return [...filtered, newTrack].sort((a, b) => a.id - b.id);
     });
 
+    setCommandLog((prev) => [...prev, logEntry]);
+    setNextLogId((id) => id + 1);
     setInput("");
   }
 
   return (
-    <>
-      <div>
-        {tracks.map((track) => {
-          const modifiers = [];
-          if (track.gain !== 1) modifiers.push(`gain:${track.gain}`);
-          if (track.speed !== 1) modifiers.push(`speed:${track.speed}`);
-          if (track.pan !== 0) modifiers.push(`pan:${track.pan}`);
-          if (track.prob !== 1) modifiers.push(`prob:${track.prob}`);
+    <div className="app-container">
+      <TrackList tracks={tracks} />
 
-          return (
-            <div key={track.id}>
-              {track.id}/ voice:{track.voice} {track.pattern}{" "}
-              {modifiers.length > 0 && `${modifiers.join(" ")} `}
-              {track.isPlaying ? "▶" : "⏸"}
-            </div>
-          );
-        })}
+      <CommandLog entries={commandLog} />
+
+      <div className="app-controls">
+        <form onSubmit={submit}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="e.g. 0 voice:kick pulse:4 or 0 stop"
+          />
+        </form>
+
+        <div className="card">
+          <button onClick={toggle}>{started ? "Stop" : "Start"}</button>
+        </div>
       </div>
-
-      <form onSubmit={submit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. 0 voice:kick pulse:4 or 0 stop"
-        />
-      </form>
-
-      <div className="card">
-        <button onClick={toggle}>{started ? "Stop" : "Start"}</button>
-      </div>
-    </>
+    </div>
   );
 }
 
