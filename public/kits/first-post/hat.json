@@ -1,0 +1,19 @@
+{
+  "name": "hat",
+  "synthType": "MetalSynth",
+  "synthParams": {
+    "envelope": {
+      "attack": 0.001,
+      "decay": 0.05,
+      "release": 0.025
+    },
+    "harmonicity": 12,
+    "modulationIndex": 12,
+    "resonance": 6000,
+    "octaves": 2.5
+  },
+  "trigger": {
+    "note": "G#6",
+    "duration": "16n"
+  }
+}

@@ -15,3 +15,18 @@ export interface Track {
   volume?: Tone.Volume;
   panner?: Tone.Panner;
 }
+
+export interface VoiceConfig {
+  name: string;
+  synthType: "Synth" | "MembraneSynth" | "MetalSynth";
+  synthParams: Record<string, unknown>;
+  trigger: {
+    note: string;
+    duration: string;
+  };
+}
+
+export interface Kit {
+  name: string;
+  voices: Map<string, VoiceConfig>;
+}

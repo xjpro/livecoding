@@ -1,0 +1,5 @@
+{
+  "name": "first-post",
+  "description": "Default kit with basic drum sounds and bass",
+  "voices": ["kick", "hat", "snare", "bass"]
+}

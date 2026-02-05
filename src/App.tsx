@@ -3,9 +3,10 @@ import * as Tone from "tone";
 import "./App.css";
 import { parsePattern } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
-import { Track } from "./lib/types.ts";
+import { Track, Kit } from "./lib/types.ts";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
 import { TrackList } from "./components/TrackList.tsx";
+import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
 function App() {
   const [started, setStarted] = useState(false);
@@ -14,10 +15,19 @@ function App() {
   const [bpm] = useState(80);
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
   const [nextLogId, setNextLogId] = useState(0);
+  const [kit, setKit] = useState<Kit | null>(null);
 
   useEffect(() => {
     Tone.getTransport().bpm.value = bpm;
   }, [bpm]);
+
+  useEffect(() => {
+    // Load the active kit on mount
+    getActiveKit().then((loadedKit) => {
+      setKit(loadedKit);
+      console.log(`Loaded kit: ${loadedKit.name}`, loadedKit.voices);
+    });
+  }, []);
 
   useEffect(() => {
     const transport = Tone.getTransport();
@@ -140,6 +150,28 @@ function App() {
     const finalPan = pan ?? existingTrack?.pan ?? 0;
     const finalProb = prob ?? existingTrack?.prob ?? 1;
 
+    // Get voice configuration from kit
+    if (!kit) {
+      logEntry.status = "error";
+      logEntry.errorMessage = "Kit not loaded yet";
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      console.error(logEntry.errorMessage);
+      setInput("");
+      return;
+    }
+
+    const voiceConfig = getVoiceConfig(kit, finalVoice);
+    if (!voiceConfig) {
+      logEntry.status = "error";
+      logEntry.errorMessage = `Voice "${finalVoice}" not found in kit "${kit.name}"`;
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      console.error(logEntry.errorMessage);
+      setInput("");
+      return;
+    }
+
     // Dispose of old track resources if they exist
     if (existingTrack?.sequence) {
       const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
@@ -157,7 +189,7 @@ function App() {
     }
 
     // Create audio chain: synth -> volume -> panner -> destination
-    const synth = createSynth(finalVoice);
+    const synth = createSynth(voiceConfig);
     const volume = new Tone.Volume(Tone.gainToDb(finalGain));
     const panner = new Tone.Panner(finalPan);
 
@@ -184,7 +216,7 @@ function App() {
 
         // Check if step is active
         if (activeSteps.has(step)) {
-          triggerSynth(synth, time, finalVoice);
+          triggerSynth(synth, time, voiceConfig);
         }
       },
       Array.from({ length: pattern.length }, (_, i) => i),

@@ -1,0 +1,32 @@
+{
+  "name": "bass",
+  "synthType": "Synth",
+  "synthParams": {
+    "oscillator": {
+      "type": "sawtooth"
+    },
+    "envelope": {
+      "attack": 0.01,
+      "decay": 0.2,
+      "sustain": 0.3,
+      "release": 0.5
+    },
+    "filter": {
+      "type": "lowpass",
+      "frequency": 800,
+      "Q": 2
+    },
+    "filterEnvelope": {
+      "attack": 0.02,
+      "decay": 0.1,
+      "sustain": 0.5,
+      "release": 0.2,
+      "baseFrequency": 200,
+      "octaves": 2.5
+    }
+  },
+  "trigger": {
+    "note": "A1",
+    "duration": "8n"
+  }
+}
