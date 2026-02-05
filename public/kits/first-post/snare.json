@@ -2,20 +2,20 @@
   "name": "snare",
   "synthType": "MembraneSynth",
   "synthParams": {
-    "pitchDecay": 0.01,
-    "octaves": 6,
+    "pitchDecay": 0.015,
+    "octaves": 4,
     "oscillator": {
       "type": "triangle"
     },
     "envelope": {
-      "attack": 0.001,
-      "decay": 0.2,
-      "sustain": 0,
-      "release": 0.2
+      "attack": 0.003,
+      "decay": 0.15,
+      "sustain": 0.02,
+      "release": 0.12
     }
   },
   "trigger": {
-    "note": "C2",
-    "duration": "8n"
+    "note": "G2",
+    "duration": "16n"
   }
 }
