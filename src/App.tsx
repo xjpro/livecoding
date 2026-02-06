@@ -324,13 +324,35 @@ function App() {
       event.preventDefault();
       const textareaElement = event.currentTarget;
 
-      // Get selected text or all text if nothing selected
-      const selectedText = textareaElement.value.substring(
-        textareaElement.selectionStart,
-        textareaElement.selectionEnd,
-      );
+      let commandText = "";
 
-      const commandText = selectedText.trim() || textareaElement.value.trim();
+      // Check if text is selected
+      if (textareaElement.selectionStart !== textareaElement.selectionEnd) {
+        // Use selected text
+        commandText = textareaElement.value
+          .substring(
+            textareaElement.selectionStart,
+            textareaElement.selectionEnd,
+          )
+          .trim();
+      } else {
+        // Nothing selected - select and submit current line
+        const text = textareaElement.value;
+        const cursorPos = textareaElement.selectionStart;
+
+        // Find start of current line (search backwards for newline)
+        let lineStart = text.lastIndexOf("\n", cursorPos - 1) + 1;
+
+        // Find end of current line (search forwards for newline)
+        let lineEnd = text.indexOf("\n", cursorPos);
+        if (lineEnd === -1) lineEnd = text.length;
+
+        // Select the current line
+        textareaElement.selectionStart = lineStart;
+        textareaElement.selectionEnd = lineEnd;
+
+        // Don't set line text, allow a follow up ctrl+enter to complete
+      }
 
       if (commandText) {
         submitCommand(commandText);
