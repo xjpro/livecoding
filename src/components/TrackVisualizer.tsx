@@ -47,13 +47,11 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
           return (
             <div key={index} className="track-row track-row--empty">
               <div className="track-header">
-                Track {index}: (empty)
+                {index}
               </div>
-              <div className="pattern-grid">
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <div key={i} className="pattern-cell pattern-cell--placeholder" />
-                ))}
-              </div>
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div key={i} className="pattern-cell pattern-cell--placeholder" />
+              ))}
             </div>
           );
         }
@@ -80,41 +78,39 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
         return (
           <div key={track.id} className={rowClass}>
             <div className="track-header">
-              Track {track.id}: {track.voice} {track.pattern}{" "}
+              {track.id}: {track.voice} {track.pattern}{" "}
               {modifiers.length > 0 && `${modifiers.join(" ")} `}
               {track.isPlaying ? "▶" : "⏸"}
             </div>
-            <div className="pattern-grid">
-              {Array.from({ length: 16 }).map((_, i) => {
-                // Get value from pattern (pattern repeats to fill 16 steps)
-                const patternValue = pattern[i % pattern.length];
-                const isCurrentStep = i === adjustedLocalStep && track.isPlaying;
+            {Array.from({ length: 16 }).map((_, i) => {
+              // Get value from pattern (pattern repeats to fill 16 steps)
+              const patternValue = pattern[i % pattern.length];
+              const isCurrentStep = i === adjustedLocalStep && track.isPlaying;
 
-                let cellClass = "pattern-cell";
-                let cellContent = null;
+              let cellClass = "pattern-cell";
+              let cellContent = null;
 
-                if (typeof patternValue === "number") {
-                  // Pulse pattern (0 or 1)
-                  cellClass += patternValue === 0
-                    ? " pattern-cell--empty"
-                    : " pattern-cell--filled";
-                } else if (typeof patternValue === "string") {
-                  // Arp pattern (note name)
-                  cellClass += " pattern-cell--note";
-                  cellContent = <span className="note-text">{patternValue}</span>;
-                }
+              if (typeof patternValue === "number") {
+                // Pulse pattern (0 or 1)
+                cellClass += patternValue === 0
+                  ? " pattern-cell--empty"
+                  : " pattern-cell--filled";
+              } else if (typeof patternValue === "string") {
+                // Arp pattern (note name)
+                cellClass += " pattern-cell--note";
+                cellContent = <span className="note-text">{patternValue}</span>;
+              }
 
-                if (isCurrentStep) {
-                  cellClass += " pattern-cell--current";
-                }
+              if (isCurrentStep) {
+                cellClass += " pattern-cell--current";
+              }
 
-                return (
-                  <div key={i} className={cellClass}>
-                    {cellContent}
-                  </div>
-                );
-              })}
-            </div>
+              return (
+                <div key={i} className={cellClass}>
+                  {cellContent}
+                </div>
+              );
+            })}
           </div>
         );
       })}
