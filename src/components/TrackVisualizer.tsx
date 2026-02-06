@@ -74,7 +74,7 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
         return (
           <div key={track.id} className={rowClass}>
             <div className="track-header">
-              {track.id}: {track.voice} {track.pattern}{" "}
+              t{track.id}: {track.voice} {track.pattern}{" "}
               {modifiers.length > 0 && `${modifiers.join(" ")} `}
             </div>
             {Array.from({ length: 16 }).map((_, i) => {

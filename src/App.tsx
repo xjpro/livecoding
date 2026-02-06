@@ -8,6 +8,90 @@ import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
 import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
+// Parse the new DSL syntax
+interface ParsedGlobalCommand {
+  type: 'global';
+  command: 'key' | 'scale';
+  value: string;
+}
+
+interface ParsedTrackCommand {
+  type: 'track';
+  trackId: number;
+  methods: Array<{ name: string; args: (string | number)[] }>;
+}
+
+interface ParsedError {
+  type: 'error';
+  message: string;
+}
+
+type ParsedCommand = ParsedGlobalCommand | ParsedTrackCommand | ParsedError;
+
+function parseNewDSL(input: string): ParsedCommand {
+  // Remove semicolon and trim
+  const cleaned = input.replace(/;$/, '').trim();
+
+  // Global commands: key('C') or scale('major')
+  if (cleaned.startsWith('key(')) {
+    const match = cleaned.match(/^key\(['"](.+)['"]\)$/);
+    if (match) {
+      return { type: 'global', command: 'key', value: match[1] };
+    }
+    return { type: 'error', message: 'Invalid key() syntax' };
+  }
+
+  if (cleaned.startsWith('scale(')) {
+    const match = cleaned.match(/^scale\(['"](.+)['"]\)$/);
+    if (match) {
+      return { type: 'global', command: 'scale', value: match[1] };
+    }
+    return { type: 'error', message: 'Invalid scale() syntax' };
+  }
+
+  // Track commands: t0.voice('kick').pulse(4)
+  const trackMatch = cleaned.match(/^t(\d+)\.(.+)$/);
+  if (!trackMatch) {
+    return { type: 'error', message: 'Invalid syntax. Expected: t0.method() or key()/scale()' };
+  }
+
+  const trackId = parseInt(trackMatch[1]);
+  const methodChain = trackMatch[2];
+
+  // Parse method calls
+  const methods: Array<{ name: string; args: (string | number)[] }> = [];
+  const methodRegex = /(\w+)\(([^)]*)\)/g;
+  let match;
+
+  while ((match = methodRegex.exec(methodChain)) !== null) {
+    const methodName = match[1];
+    const argsStr = match[2];
+
+    // Parse arguments
+    const args: (string | number)[] = [];
+    if (argsStr.trim()) {
+      // Split by comma, but respect quotes
+      const argMatches = argsStr.match(/(?:[^,'"]+|'[^']*'|"[^"]*")+/g) || [];
+      for (const arg of argMatches) {
+        const trimmed = arg.trim();
+        // Remove quotes from strings
+        if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+            (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+          args.push(trimmed.slice(1, -1));
+        } else {
+          // Try to parse as number
+          const num = parseFloat(trimmed);
+          args.push(isNaN(num) ? trimmed : num);
+        }
+      }
+    }
+
+    methods.push({ name: methodName, args });
+  }
+
+  return { type: 'track', trackId, methods };
+}
+
 // Helper function to apply octave to a note
 function applyOctave(note: string, octaveMin: number, octaveMax: number): string {
   // Remove existing octave number from note (e.g., "C2" -> "C")
@@ -128,58 +212,40 @@ function App() {
       status: "success",
     };
 
-    // Check for global commands first (key:, scale:, stop)
-    if (input.startsWith("key:")) {
-      const newKey = input.substring(4).trim();
-      setKey(newKey);
-      logEntry.status = "success";
-      logEntry.command = `Set key to ${newKey}`;
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
-      return;
-    }
+    // Parse the new DSL syntax
+    const parsed = parseNewDSL(commandText);
 
-    if (input.startsWith("scale:")) {
-      const newScale = input.substring(6).trim();
-      setScale(newScale);
-      logEntry.status = "success";
-      logEntry.command = `Set scale to ${newScale}`;
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
-      return;
-    }
-
-    if (input === "stop") {
-      // Stop all tracks
-      setTracks((tracks) =>
-        tracks.map((t) => ({ ...t, isPlaying: false }))
-      );
-      logEntry.status = "success";
-      logEntry.command = "stop";
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
-      return;
-    }
-
-    // Parse DSL: [trackId][whitespace][command parts...]
-    const match = input.match(/^(\d+)\s+(.+)$/);
-    if (!match) {
+    // Handle parse errors
+    if (parsed.type === 'error') {
       logEntry.status = "error";
-      logEntry.errorMessage =
-        "Invalid format. Expected: [track#] [command parts]";
+      logEntry.errorMessage = parsed.message;
       setCommandLog((prev) => [...prev, logEntry]);
       setNextLogId((id) => id + 1);
-      console.error(logEntry.errorMessage);
+      console.error(parsed.message);
+      setInput("");
       return;
     }
 
-    const trackId = parseInt(match[1]);
-    const commandParts = match[2].trim().split(/\s+/);
+    // Handle global commands
+    if (parsed.type === 'global') {
+      if (parsed.command === 'key') {
+        setKey(parsed.value);
+        logEntry.command = `Set key to ${parsed.value}`;
+      } else if (parsed.command === 'scale') {
+        setScale(parsed.value);
+        logEntry.command = `Set scale to ${parsed.value}`;
+      }
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      setInput("");
+      return;
+    }
 
-    // Parse command parts
+    // Handle track commands
+    const trackId = parsed.trackId;
+    const methods = parsed.methods;
+
+    // Parse method calls into parameters
     let voice: string | null = null;
     let patternStr: string | null = null;
     let gain: number | null = null;
@@ -191,38 +257,62 @@ function App() {
     let shouldStart = false;
     let shouldStop = false;
 
-    for (const part of commandParts) {
-      if (part.startsWith("voice:")) {
-        voice = part.substring(6);
-      } else if (part.startsWith("pulse:")) {
-        patternStr = part;
-      } else if (part.startsWith("arp:")) {
-        patternStr = part;
-      } else if (part.startsWith("gain:")) {
-        gain = parseFloat(part.substring(5));
-      } else if (part.startsWith("pan:")) {
-        pan = parseFloat(part.substring(4));
-      } else if (part.startsWith("prob:")) {
-        prob = parseFloat(part.substring(5));
-      } else if (part.startsWith("offset:")) {
-        offset = parseInt(part.substring(7));
-      } else if (part.startsWith("oct:")) {
-        const octaveStr = part.substring(4);
-        if (octaveStr.includes(",")) {
-          // Range: oct:1,3
-          const [min, max] = octaveStr.split(",").map((s) => parseInt(s.trim()));
-          octaveMin = min;
-          octaveMax = max;
-        } else {
-          // Single octave: oct:2
-          const octave = parseInt(octaveStr);
-          octaveMin = octave;
-          octaveMax = octave;
-        }
-      } else if (part === "start") {
-        shouldStart = true;
-      } else if (part === "stop") {
-        shouldStop = true;
+    for (const method of methods) {
+      switch (method.name) {
+        case 'voice':
+          if (method.args.length > 0 && typeof method.args[0] === 'string') {
+            voice = method.args[0];
+          }
+          break;
+        case 'pulse':
+          if (method.args.length === 1) {
+            patternStr = `pulse:${method.args[0]}`;
+          } else if (method.args.length === 2) {
+            patternStr = `pulse:${method.args[0]},${method.args[1]}`;
+          }
+          break;
+        case 'arp':
+          if (method.args.length > 0) {
+            patternStr = `arp:${method.args.join(',')}`;
+          }
+          break;
+        case 'gain':
+          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+            gain = method.args[0];
+          }
+          break;
+        case 'pan':
+          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+            pan = method.args[0];
+          }
+          break;
+        case 'prob':
+          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+            prob = method.args[0];
+          }
+          break;
+        case 'offset':
+          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+            offset = method.args[0];
+          }
+          break;
+        case 'oct':
+          if (method.args.length === 1 && typeof method.args[0] === 'number') {
+            octaveMin = method.args[0];
+            octaveMax = method.args[0];
+          } else if (method.args.length === 2 &&
+                     typeof method.args[0] === 'number' &&
+                     typeof method.args[1] === 'number') {
+            octaveMin = method.args[0];
+            octaveMax = method.args[1];
+          }
+          break;
+        case 'start':
+          shouldStart = true;
+          break;
+        case 'stop':
+          shouldStop = true;
+          break;
       }
     }
 
@@ -432,7 +522,7 @@ function App() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. 0 voice:kick pulse:4, 0 stop, or stop (all)"
+            placeholder="e.g. t0.voice('kick').pulse(4); or key('C');"
           />
         </form>
       </div>

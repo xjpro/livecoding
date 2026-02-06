@@ -10,8 +10,8 @@ export interface TrackParams {
 export interface Track {
   id: number;
   voice: string;
-  pattern: string;  // Original pattern string (e.g., "pulse:4")
-  dsl: string;
+  pattern: string;  // Original pattern string (e.g., "pulse:4" - internal format)
+  dsl: string;      // Original DSL command (e.g., "t0.voice('kick').pulse(4);")
   isPlaying: boolean;
   gain: number;
   pan: number;
