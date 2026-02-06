@@ -22,7 +22,7 @@ const TRACK_COLORS = [
 // Parse the new DSL syntax
 interface ParsedGlobalCommand {
   type: 'global';
-  command: 'key' | 'scale';
+  command: 'key' | 'scale' | 'stop';
   value: string;
 }
 
@@ -58,6 +58,11 @@ function parseNewDSL(input: string): ParsedCommand {
       return { type: 'global', command: 'scale', value: match[1] };
     }
     return { type: 'error', message: 'Invalid scale() syntax' };
+  }
+
+  // Global stop command: stop()
+  if (cleaned === 'stop()') {
+    return { type: 'global', command: 'stop', value: '' };
   }
 
   // Track commands: t0.voice('kick').pulse(4)
@@ -316,6 +321,11 @@ function App() {
         setKey(parsed.value);
       } else if (parsed.command === 'scale') {
         setScale(parsed.value);
+      } else if (parsed.command === 'stop') {
+        // Stop all tracks
+        setTracks((tracks) =>
+          tracks.map((t) => ({ ...t, isPlaying: false }))
+        );
       }
       return;
     }
