@@ -33,11 +33,11 @@ Global commands don't require a track number and affect all subsequent tracks.
 
 | Command | Range | Description |
 |---------|-------|-------------|
-| `gain:[value]` | 0 to 1 | Volume control (0 = silent, 1 = full volume) |
-| `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right) |
-| `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance) |
+| `gain:[value]` | 0 to 1 | Volume control (0 = silent, 1 = full volume). Can be changed smoothly while playing. |
+| `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right). Can be changed smoothly while playing. |
+| `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance). Can be changed smoothly while playing. |
 | `offset:[steps]` | 0 to n | Shift pattern forward by N steps (wraps around) |
-| `oct:[octave]` or `oct:[min,max]` | 0 to 8 | Set octave for note patterns. Single value (e.g., `oct:2`) sets fixed octave. Range (e.g., `oct:1,3`) randomly picks octave per note. Defaults to 2. |
+| `oct:[octave]` or `oct:[min,max]` | 0 to 8 | Set octave for note patterns. Single value (e.g., `oct:2`) sets fixed octave. Range (e.g., `oct:1,3`) randomly picks octave per note. Defaults to 2. Can be changed smoothly while playing. |
 
 ### Control Commands
 

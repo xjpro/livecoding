@@ -272,7 +272,7 @@ function App() {
     }
 
     // Check if only hot parameters are changing (no recreation needed)
-    const needsRecreation = voice !== null || patternStr !== null || offset !== null || octaveMin !== null || octaveMax !== null;
+    const needsRecreation = voice !== null || patternStr !== null || offset !== null;
 
     if (!needsRecreation && existingTrack) {
       // Update hot parameters directly - no synth recreation
@@ -285,6 +285,10 @@ function App() {
       if (prob !== null && existingTrack.params) {
         existingTrack.params.prob = prob;
       }
+      if ((octaveMin !== null || octaveMax !== null) && existingTrack.params) {
+        existingTrack.params.octaveMin = octaveMin ?? existingTrack.params.octaveMin;
+        existingTrack.params.octaveMax = octaveMax ?? existingTrack.params.octaveMax;
+      }
 
       // Update React state with new parameter values
       setTracks((tracks) =>
@@ -295,6 +299,8 @@ function App() {
                 gain: gain ?? t.gain,
                 pan: pan ?? t.pan,
                 prob: prob ?? t.prob,
+                octaveMin: octaveMin ?? t.octaveMin,
+                octaveMax: octaveMax ?? t.octaveMax,
                 dsl: input,
               }
             : t,
