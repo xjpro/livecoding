@@ -18,15 +18,18 @@
   --glow-1: transparent;
   --glow-2: transparent;
   --glow-3: transparent;
-  --glow-intensity: 1.0;
+  --glow-intensity: 1;
 
   /* Glow effect styling with pulsing */
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 2px;
   box-shadow:
-    0 0 calc(30px * var(--glow-intensity)) calc(10px * var(--glow-intensity)) var(--glow-1),
-    0 0 calc(50px * var(--glow-intensity)) calc(20px * var(--glow-intensity)) var(--glow-2),
-    0 0 calc(70px * var(--glow-intensity)) calc(30px * var(--glow-intensity)) var(--glow-3),
+    0 0 calc(30px * var(--glow-intensity)) calc(10px * var(--glow-intensity))
+      var(--glow-1),
+    0 0 calc(50px * var(--glow-intensity)) calc(20px * var(--glow-intensity))
+      var(--glow-2),
+    0 0 calc(70px * var(--glow-intensity)) calc(30px * var(--glow-intensity))
+      var(--glow-3),
     inset 0 0 20px rgba(255, 255, 255, 0.1);
   transition: box-shadow 0.05s ease-out;
   filter: brightness(var(--glow-intensity));
@@ -56,12 +59,11 @@
   width: 100%;
   min-height: 300px;
   padding: 12px;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-family: monospace;
   line-height: 1.6;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 2px;
   color: rgba(255, 255, 255, 0.87);
   resize: vertical;
   outline: none;

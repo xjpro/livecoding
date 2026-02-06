@@ -11,13 +11,16 @@ interface TrackVisualizerProps {
 function getFixedTracks(tracks: Track[]): (Track | null)[] {
   const fixedTracks: (Track | null)[] = [];
   for (let i = 0; i < 8; i++) {
-    const track = tracks.find(t => t.id === i);
+    const track = tracks.find((t) => t.id === i);
     fixedTracks.push(track || null);
   }
   return fixedTracks;
 }
 
-export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps) {
+export function TrackVisualizer({
+  tracks,
+  globalStepRef,
+}: TrackVisualizerProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
   // Sync visual updates with Tone.js transport for accurate timing
@@ -25,8 +28,10 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
     const eventId = Tone.getTransport().scheduleRepeat((time) => {
       // Use Tone.Draw to schedule the state update on the main thread
       // Pass the AudioContext time so the draw happens on the nearest animation frame
-      Tone.Draw.schedule(() => {
-        setCurrentStep(globalStepRef.current);
+      Tone.getDraw().schedule(() => {
+        if (globalStepRef.current) {
+          setCurrentStep(globalStepRef.current);
+        }
       }, time);
     }, "16n");
 
@@ -44,11 +49,12 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
           // Empty track placeholder
           return (
             <div key={index} className="track-row track-row--empty">
-              <div className="track-header">
-                {index}
-              </div>
+              <div className="track-header">{index}</div>
               {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="pattern-cell pattern-cell--placeholder" />
+                <div
+                  key={i}
+                  className="pattern-cell pattern-cell--placeholder"
+                />
               ))}
             </div>
           );
@@ -69,7 +75,7 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
         const pattern = track.params?.pattern || [];
 
         // Row class based on playing state
-        const rowClass = `track-row ${track.isPlaying ? 'track-row--playing' : 'track-row--stopped'}`;
+        const rowClass = `track-row ${track.isPlaying ? "track-row--playing" : "track-row--stopped"}`;
 
         return (
           <div key={track.id} className={rowClass}>
@@ -87,9 +93,10 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
 
               if (typeof patternValue === "number") {
                 // Pulse pattern (0 or 1)
-                cellClass += patternValue === 0
-                  ? " pattern-cell--empty"
-                  : " pattern-cell--filled";
+                cellClass +=
+                  patternValue === 0
+                    ? " pattern-cell--empty"
+                    : " pattern-cell--filled";
               } else if (typeof patternValue === "string") {
                 // Arp pattern (note name)
                 cellClass += " pattern-cell--note";
