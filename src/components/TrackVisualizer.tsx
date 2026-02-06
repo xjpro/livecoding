@@ -76,7 +76,6 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
             <div className="track-header">
               {track.id}: {track.voice} {track.pattern}{" "}
               {modifiers.length > 0 && `${modifiers.join(" ")} `}
-              {track.isPlaying ? "▶" : "⏸"}
             </div>
             {Array.from({ length: 16 }).map((_, i) => {
               // Get value from pattern (pattern repeats to fill 16 steps)

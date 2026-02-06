@@ -28,7 +28,6 @@
 
 .track-header {
   font-family: monospace;
-  font-size: 12px;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   overflow: hidden;
@@ -42,7 +41,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
   font-weight: 600;
   transition: all 0.1s ease;
   position: relative;
@@ -91,7 +89,6 @@
 
 .note-text {
   font-family: monospace;
-  font-size: 9px;
   line-height: 1;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
@@ -113,13 +110,5 @@
   .track-row {
     grid-template-columns: minmax(200px, auto) repeat(16, 1fr);
     gap: 4px;
-  }
-
-  .track-header {
-    font-size: 11px;
-  }
-
-  .note-text {
-    font-size: 8px;
   }
 }
