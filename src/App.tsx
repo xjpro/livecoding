@@ -9,31 +9,31 @@ import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
 // Track colors matching TrackVisualizer.css rainbow sequence
 const TRACK_COLORS = [
-  { id: 0, hsl: "0, 100%, 50%" },     // Red
-  { id: 1, hsl: "30, 100%, 50%" },    // Orange
-  { id: 2, hsl: "60, 100%, 50%" },    // Yellow
-  { id: 3, hsl: "120, 100%, 50%" },   // Green
-  { id: 4, hsl: "180, 100%, 50%" },   // Cyan
-  { id: 5, hsl: "240, 100%, 50%" },   // Blue
-  { id: 6, hsl: "270, 100%, 45%" },   // Indigo
-  { id: 7, hsl: "300, 100%, 50%" },   // Purple
+  { id: 0, hsl: "0, 100%, 50%" }, // Red
+  { id: 1, hsl: "30, 100%, 50%" }, // Orange
+  { id: 2, hsl: "60, 100%, 50%" }, // Yellow
+  { id: 3, hsl: "120, 100%, 50%" }, // Green
+  { id: 4, hsl: "180, 100%, 50%" }, // Cyan
+  { id: 5, hsl: "240, 100%, 50%" }, // Blue
+  { id: 6, hsl: "270, 100%, 45%" }, // Indigo
+  { id: 7, hsl: "300, 100%, 50%" }, // Purple
 ];
 
 // Parse the new DSL syntax
 interface ParsedGlobalCommand {
-  type: 'global';
-  command: 'key' | 'scale' | 'stop' | 'bpm';
+  type: "global";
+  command: "key" | "scale" | "stop" | "bpm";
   value: string;
 }
 
 interface ParsedTrackCommand {
-  type: 'track';
+  type: "track";
   trackId: number;
   methods: Array<{ name: string; args: (string | number)[] }>;
 }
 
 interface ParsedError {
-  type: 'error';
+  type: "error";
   message: string;
 }
 
@@ -41,43 +41,46 @@ type ParsedCommand = ParsedGlobalCommand | ParsedTrackCommand | ParsedError;
 
 function parseNewDSL(input: string): ParsedCommand {
   // Remove semicolon and trim
-  const cleaned = input.replace(/;$/, '').trim();
+  const cleaned = input.replace(/;$/, "").trim();
 
   // Global commands: key('C') or scale('major')
-  if (cleaned.startsWith('key(')) {
+  if (cleaned.startsWith("key(")) {
     const match = cleaned.match(/^key\(['"](.+)['"]\)$/);
     if (match) {
-      return { type: 'global', command: 'key', value: match[1] };
+      return { type: "global", command: "key", value: match[1] };
     }
-    return { type: 'error', message: 'Invalid key() syntax' };
+    return { type: "error", message: "Invalid key() syntax" };
   }
 
-  if (cleaned.startsWith('scale(')) {
+  if (cleaned.startsWith("scale(")) {
     const match = cleaned.match(/^scale\(['"](.+)['"]\)$/);
     if (match) {
-      return { type: 'global', command: 'scale', value: match[1] };
+      return { type: "global", command: "scale", value: match[1] };
     }
-    return { type: 'error', message: 'Invalid scale() syntax' };
+    return { type: "error", message: "Invalid scale() syntax" };
   }
 
   // Global bpm command: bpm(120)
-  if (cleaned.startsWith('bpm(')) {
+  if (cleaned.startsWith("bpm(")) {
     const match = cleaned.match(/^bpm\((\d+)\)$/);
     if (match) {
-      return { type: 'global', command: 'bpm', value: match[1] };
+      return { type: "global", command: "bpm", value: match[1] };
     }
-    return { type: 'error', message: 'Invalid bpm() syntax' };
+    return { type: "error", message: "Invalid bpm() syntax" };
   }
 
   // Global stop command: stop()
-  if (cleaned === 'stop()') {
-    return { type: 'global', command: 'stop', value: '' };
+  if (cleaned === "stop()") {
+    return { type: "global", command: "stop", value: "" };
   }
 
   // Track commands: t0.voice('kick').pulse(4)
   const trackMatch = cleaned.match(/^t(\d+)\.(.+)$/);
   if (!trackMatch) {
-    return { type: 'error', message: 'Invalid syntax. Expected: t0.method() or key()/scale()' };
+    return {
+      type: "error",
+      message: "Invalid syntax. Expected: t0.method() or key()/scale()",
+    };
   }
 
   const trackId = parseInt(trackMatch[1]);
@@ -100,8 +103,10 @@ function parseNewDSL(input: string): ParsedCommand {
       for (const arg of argMatches) {
         const trimmed = arg.trim();
         // Remove quotes from strings
-        if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-            (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+        if (
+          (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+          (trimmed.startsWith("'") && trimmed.endsWith("'"))
+        ) {
           args.push(trimmed.slice(1, -1));
         } else {
           // Try to parse as number
@@ -114,33 +119,41 @@ function parseNewDSL(input: string): ParsedCommand {
     methods.push({ name: methodName, args });
   }
 
-  return { type: 'track', trackId, methods };
+  return { type: "track", trackId, methods };
 }
 
 // Helper function to apply octave to a note
-function applyOctave(note: string, octaveMin: number, octaveMax: number): string {
+function applyOctave(
+  note: string,
+  octaveMin: number,
+  octaveMax: number,
+): string {
   // Remove existing octave number from note (e.g., "C2" -> "C")
   const noteWithoutOctave = note.replace(/\d+$/, "");
 
   // Pick random octave in range (inclusive)
-  const octave = octaveMin === octaveMax
-    ? octaveMin
-    : Math.floor(Math.random() * (octaveMax - octaveMin + 1)) + octaveMin;
+  const octave =
+    octaveMin === octaveMax
+      ? octaveMin
+      : Math.floor(Math.random() * (octaveMax - octaveMin + 1)) + octaveMin;
 
   return noteWithoutOctave + octave;
 }
 
-function getGlowStyles(tracks: Track[], pulseIntensity: number): React.CSSProperties {
+function getGlowStyles(
+  tracks: Track[],
+  pulseIntensity: number,
+): React.CSSProperties {
   // Filter to find currently playing tracks
-  const playingTracks = tracks.filter(t => t.isPlaying);
+  const playingTracks = tracks.filter((t) => t.isPlaying);
 
   if (playingTracks.length === 0) {
     // No tracks playing - transparent, no glow
     return {
-      '--glow-1': 'transparent',
-      '--glow-2': 'transparent',
-      '--glow-3': 'transparent',
-      '--glow-intensity': '1.0',
+      "--glow-1": "transparent",
+      "--glow-2": "transparent",
+      "--glow-3": "transparent",
+      "--glow-intensity": "1.0",
     } as React.CSSProperties;
   }
 
@@ -148,21 +161,21 @@ function getGlowStyles(tracks: Track[], pulseIntensity: number): React.CSSProper
   const glowColors = playingTracks
     .sort((a, b) => a.id - b.id)
     .slice(0, 3)
-    .map(track => {
+    .map((track) => {
       const color = TRACK_COLORS[track.id];
       return `hsla(${color.hsl}, 0.6)`;
     });
 
   // Pad with transparent if fewer than 3 tracks playing
   while (glowColors.length < 3) {
-    glowColors.push('transparent');
+    glowColors.push("transparent");
   }
 
   return {
-    '--glow-1': glowColors[0],
-    '--glow-2': glowColors[1],
-    '--glow-3': glowColors[2],
-    '--glow-intensity': pulseIntensity.toString(),
+    "--glow-1": glowColors[0],
+    "--glow-2": glowColors[1],
+    "--glow-3": glowColors[2],
+    "--glow-intensity": pulseIntensity.toString(),
   } as React.CSSProperties;
 }
 
@@ -197,6 +210,32 @@ function App() {
     });
   }, []);
 
+  // Recompute arp patterns when key or scale changes
+  useEffect(() => {
+    if (tracks.length === 0) return;
+
+    setTracks((currentTracks) =>
+      currentTracks.map((track) => {
+        // Only recompute arp patterns (pulse patterns don't use key/scale)
+        if (!track.pattern.startsWith("arp:")) {
+          return track;
+        }
+
+        // Reparse pattern with new key/scale
+        const basePattern = parsePattern(track.pattern, key, scale);
+        const newPattern = applyOffset(basePattern, track.offset);
+
+        // Update only params.pattern, preserve everything else
+        return {
+          ...track,
+          params: track.params
+            ? { ...track.params, pattern: newPattern }
+            : undefined,
+        };
+      }),
+    );
+  }, [key, scale]);
+
   // Master clock - single source of truth for all track timing
   useEffect(() => {
     const eventId = Tone.getTransport().scheduleRepeat(
@@ -206,7 +245,12 @@ function App() {
         let soundTriggered = false;
 
         currentTracks.forEach((track) => {
-          if (!track.isPlaying || !track.synth || !track.params || !track.voiceConfig) {
+          if (
+            !track.isPlaying ||
+            !track.synth ||
+            !track.params ||
+            !track.voiceConfig
+          ) {
             return;
           }
 
@@ -223,8 +267,17 @@ function App() {
           if (isNotePattern) {
             // Note-based pattern (arp)
             if (typeof value === "string") {
-              const noteWithOctave = applyOctave(value, track.params.octaveMin, track.params.octaveMax);
-              triggerSynth(track.synth, time, track.voiceConfig, noteWithOctave);
+              const noteWithOctave = applyOctave(
+                value,
+                track.params.octaveMin,
+                track.params.octaveMax,
+              );
+              triggerSynth(
+                track.synth,
+                time,
+                track.voiceConfig,
+                noteWithOctave,
+              );
               soundTriggered = true;
             }
           } else {
@@ -248,7 +301,7 @@ function App() {
         globalStepRef.current++;
       },
       "16n",
-      0
+      0,
     );
 
     return () => {
@@ -267,14 +320,14 @@ function App() {
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Handle Cmd/Ctrl + Enter for command submission
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       const textareaElement = event.currentTarget;
 
       // Get selected text or all text if nothing selected
       const selectedText = textareaElement.value.substring(
         textareaElement.selectionStart,
-        textareaElement.selectionEnd
+        textareaElement.selectionEnd,
       );
 
       const commandText = selectedText.trim() || textareaElement.value.trim();
@@ -285,7 +338,7 @@ function App() {
     }
 
     // Handle Tab key for indentation (insert 2 spaces)
-    if (event.key === 'Tab') {
+    if (event.key === "Tab") {
       event.preventDefault();
       const textarea = event.currentTarget;
       const start = textarea.selectionStart;
@@ -294,7 +347,7 @@ function App() {
       // Insert 2 spaces at cursor position
       const newValue =
         textarea.value.substring(0, start) +
-        '  ' +
+        "  " +
         textarea.value.substring(end);
 
       setInput(newValue);
@@ -319,27 +372,25 @@ function App() {
     const parsed = parseNewDSL(commandText);
 
     // Handle parse errors
-    if (parsed.type === 'error') {
+    if (parsed.type === "error") {
       console.error(parsed.message);
       return;
     }
 
     // Handle global commands
-    if (parsed.type === 'global') {
-      if (parsed.command === 'key') {
+    if (parsed.type === "global") {
+      if (parsed.command === "key") {
         setKey(parsed.value);
-      } else if (parsed.command === 'scale') {
+      } else if (parsed.command === "scale") {
         setScale(parsed.value);
-      } else if (parsed.command === 'bpm') {
+      } else if (parsed.command === "bpm") {
         const newBpm = parseInt(parsed.value);
         if (!isNaN(newBpm) && newBpm > 0) {
           setBpm(newBpm);
         }
-      } else if (parsed.command === 'stop') {
+      } else if (parsed.command === "stop") {
         // Stop all tracks
-        setTracks((tracks) =>
-          tracks.map((t) => ({ ...t, isPlaying: false }))
-        );
+        setTracks((tracks) => tracks.map((t) => ({ ...t, isPlaying: false })));
       }
       return;
     }
@@ -362,58 +413,60 @@ function App() {
 
     for (const method of methods) {
       switch (method.name) {
-        case 'voice':
-          if (method.args.length > 0 && typeof method.args[0] === 'string') {
+        case "voice":
+          if (method.args.length > 0 && typeof method.args[0] === "string") {
             voice = method.args[0];
           }
           break;
-        case 'pulse':
+        case "pulse":
           if (method.args.length === 1) {
             patternStr = `pulse:${method.args[0]}`;
           } else if (method.args.length === 2) {
             patternStr = `pulse:${method.args[0]},${method.args[1]}`;
           }
           break;
-        case 'arp':
+        case "arp":
           if (method.args.length > 0) {
-            patternStr = `arp:${method.args.join(',')}`;
+            patternStr = `arp:${method.args.join(",")}`;
           }
           break;
-        case 'gain':
-          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+        case "gain":
+          if (method.args.length > 0 && typeof method.args[0] === "number") {
             gain = method.args[0];
           }
           break;
-        case 'pan':
-          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+        case "pan":
+          if (method.args.length > 0 && typeof method.args[0] === "number") {
             pan = method.args[0];
           }
           break;
-        case 'prob':
-          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+        case "prob":
+          if (method.args.length > 0 && typeof method.args[0] === "number") {
             prob = method.args[0];
           }
           break;
-        case 'offset':
-          if (method.args.length > 0 && typeof method.args[0] === 'number') {
+        case "offset":
+          if (method.args.length > 0 && typeof method.args[0] === "number") {
             offset = method.args[0];
           }
           break;
-        case 'oct':
-          if (method.args.length === 1 && typeof method.args[0] === 'number') {
+        case "oct":
+          if (method.args.length === 1 && typeof method.args[0] === "number") {
             octaveMin = method.args[0];
             octaveMax = method.args[0];
-          } else if (method.args.length === 2 &&
-                     typeof method.args[0] === 'number' &&
-                     typeof method.args[1] === 'number') {
+          } else if (
+            method.args.length === 2 &&
+            typeof method.args[0] === "number" &&
+            typeof method.args[1] === "number"
+          ) {
             octaveMin = method.args[0];
             octaveMax = method.args[1];
           }
           break;
-        case 'start':
+        case "start":
           shouldStart = true;
           break;
-        case 'stop':
+        case "stop":
           shouldStop = true;
           break;
       }
@@ -456,7 +509,8 @@ function App() {
     }
 
     // Check if only hot parameters are changing (no recreation needed)
-    const needsRecreation = voice !== null || patternStr !== null || offset !== null;
+    const needsRecreation =
+      voice !== null || patternStr !== null || offset !== null;
 
     if (!needsRecreation && existingTrack) {
       // Update hot parameters directly - no synth recreation
@@ -470,8 +524,10 @@ function App() {
         existingTrack.params.prob = prob;
       }
       if ((octaveMin !== null || octaveMax !== null) && existingTrack.params) {
-        existingTrack.params.octaveMin = octaveMin ?? existingTrack.params.octaveMin;
-        existingTrack.params.octaveMax = octaveMax ?? existingTrack.params.octaveMax;
+        existingTrack.params.octaveMin =
+          octaveMin ?? existingTrack.params.octaveMin;
+        existingTrack.params.octaveMax =
+          octaveMax ?? existingTrack.params.octaveMax;
       }
 
       // Update React state with new parameter values
