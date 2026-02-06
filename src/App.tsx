@@ -7,6 +7,18 @@ import { Track, Kit, TrackParams } from "./lib/types.ts";
 import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
+// Track colors matching TrackVisualizer.css rainbow sequence
+const TRACK_COLORS = [
+  { id: 0, hsl: "0, 100%, 50%" },     // Red
+  { id: 1, hsl: "30, 100%, 50%" },    // Orange
+  { id: 2, hsl: "60, 100%, 50%" },    // Yellow
+  { id: 3, hsl: "120, 100%, 50%" },   // Green
+  { id: 4, hsl: "180, 100%, 50%" },   // Cyan
+  { id: 5, hsl: "240, 100%, 50%" },   // Blue
+  { id: 6, hsl: "270, 100%, 45%" },   // Indigo
+  { id: 7, hsl: "300, 100%, 50%" },   // Purple
+];
+
 // Parse the new DSL syntax
 interface ParsedGlobalCommand {
   type: 'global';
@@ -104,6 +116,42 @@ function applyOctave(note: string, octaveMin: number, octaveMax: number): string
   return noteWithoutOctave + octave;
 }
 
+function getGlowStyles(tracks: Track[], pulseIntensity: number): React.CSSProperties {
+  // Filter to find currently playing tracks
+  const playingTracks = tracks.filter(t => t.isPlaying);
+
+  if (playingTracks.length === 0) {
+    // No tracks playing - transparent, no glow
+    return {
+      '--glow-1': 'transparent',
+      '--glow-2': 'transparent',
+      '--glow-3': 'transparent',
+      '--glow-intensity': '1.0',
+    } as React.CSSProperties;
+  }
+
+  // Sort playing tracks by ID and take first 3 for visual clarity
+  const glowColors = playingTracks
+    .sort((a, b) => a.id - b.id)
+    .slice(0, 3)
+    .map(track => {
+      const color = TRACK_COLORS[track.id];
+      return `hsla(${color.hsl}, 0.6)`;
+    });
+
+  // Pad with transparent if fewer than 3 tracks playing
+  while (glowColors.length < 3) {
+    glowColors.push('transparent');
+  }
+
+  return {
+    '--glow-1': glowColors[0],
+    '--glow-2': glowColors[1],
+    '--glow-3': glowColors[2],
+    '--glow-intensity': pulseIntensity.toString(),
+  } as React.CSSProperties;
+}
+
 function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
@@ -116,6 +164,7 @@ function App() {
   // Ref to hold current tracks for master clock callback
   const tracksRef = useRef<Track[]>([]);
   const globalStepRef = useRef(0);
+  const [glowPulse, setGlowPulse] = useState(1.0);
 
   // Keep tracksRef in sync with tracks state
   useEffect(() => {
@@ -140,6 +189,7 @@ function App() {
       (time) => {
         const currentTracks = tracksRef.current;
         const step = globalStepRef.current;
+        let soundTriggered = false;
 
         currentTracks.forEach((track) => {
           if (!track.isPlaying || !track.synth || !track.params || !track.voiceConfig) {
@@ -161,14 +211,25 @@ function App() {
             if (typeof value === "string") {
               const noteWithOctave = applyOctave(value, track.params.octaveMin, track.params.octaveMax);
               triggerSynth(track.synth, time, track.voiceConfig, noteWithOctave);
+              soundTriggered = true;
             }
           } else {
             // Rhythm-based pattern (pulse)
             if (value === 1) {
               triggerSynth(track.synth, time, track.voiceConfig);
+              soundTriggered = true;
             }
           }
         });
+
+        // Trigger glow pulse only when sounds are actually played
+        if (soundTriggered) {
+          Tone.Draw.schedule(() => {
+            setGlowPulse(1.3); // Brighten to 130%
+            // Decay back to base after a short duration
+            setTimeout(() => setGlowPulse(1.0), 50);
+          }, time);
+        }
 
         globalStepRef.current++;
       },
@@ -503,7 +564,7 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={getGlowStyles(tracks, glowPulse)}>
       <TrackVisualizer tracks={tracks} globalStepRef={globalStepRef} />
 
       <div className="app-controls">

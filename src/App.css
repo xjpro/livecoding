@@ -11,6 +11,23 @@
   flex-direction: column;
   height: 100%;
   justify-content: center;
+
+  /* Glow effect CSS variables (set dynamically by React) */
+  --glow-1: transparent;
+  --glow-2: transparent;
+  --glow-3: transparent;
+  --glow-intensity: 1.0;
+
+  /* Glow effect styling with pulsing */
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow:
+    0 0 calc(30px * var(--glow-intensity)) calc(10px * var(--glow-intensity)) var(--glow-1),
+    0 0 calc(50px * var(--glow-intensity)) calc(20px * var(--glow-intensity)) var(--glow-2),
+    0 0 calc(70px * var(--glow-intensity)) calc(30px * var(--glow-intensity)) var(--glow-3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  transition: box-shadow 0.05s ease-out;
+  filter: brightness(var(--glow-intensity));
 }
 
 .track-list {
