@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as Tone from "tone";
 import { Track } from "../lib/types.ts";
 import "./TrackVisualizer.css";
 
@@ -19,22 +20,19 @@ function getFixedTracks(tracks: Track[]): (Track | null)[] {
 export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  // RAF loop for smooth updates at 30fps
+  // Sync visual updates with Tone.js transport for accurate timing
   useEffect(() => {
-    let rafId: number;
-    let lastUpdate = 0;
-    const UPDATE_INTERVAL = 1000 / 30; // 30fps
-
-    const updateStep = (timestamp: number) => {
-      if (timestamp - lastUpdate >= UPDATE_INTERVAL) {
+    const eventId = Tone.getTransport().scheduleRepeat((time) => {
+      // Use Tone.Draw to schedule the state update on the main thread
+      // Pass the AudioContext time so the draw happens on the nearest animation frame
+      Tone.Draw.schedule(() => {
         setCurrentStep(globalStepRef.current);
-        lastUpdate = timestamp;
-      }
-      rafId = requestAnimationFrame(updateStep);
-    };
+      }, time);
+    }, "16n");
 
-    rafId = requestAnimationFrame(updateStep);
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      Tone.getTransport().clear(eventId);
+    };
   }, [globalStepRef]);
 
   const fixedTracks = getFixedTracks(tracks);
@@ -57,10 +55,8 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
         }
 
         // Calculate local step position (0-15)
+        // Note: Don't apply offset here - the pattern is already rotated
         const localStep = currentStep % 16;
-
-        // Apply offset (shift pattern to the left)
-        const adjustedLocalStep = (localStep + track.offset) % 16;
 
         // Build modifiers string
         const modifiers = [];
@@ -85,7 +81,7 @@ export function TrackVisualizer({ tracks, globalStepRef }: TrackVisualizerProps)
             {Array.from({ length: 16 }).map((_, i) => {
               // Get value from pattern (pattern repeats to fill 16 steps)
               const patternValue = pattern[i % pattern.length];
-              const isCurrentStep = i === adjustedLocalStep && track.isPlaying;
+              const isCurrentStep = i === localStep && track.isPlaying;
 
               let cellClass = "pattern-cell";
               let cellContent = null;
