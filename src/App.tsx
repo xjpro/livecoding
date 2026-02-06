@@ -114,7 +114,7 @@ function App() {
       status: "success",
     };
 
-    // Check for global commands first (key:, scale:)
+    // Check for global commands first (key:, scale:, stop)
     if (input.startsWith("key:")) {
       const newKey = input.substring(4).trim();
       setKey(newKey);
@@ -131,6 +131,19 @@ function App() {
       setScale(newScale);
       logEntry.status = "success";
       logEntry.command = `Set scale to ${newScale}`;
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      setInput("");
+      return;
+    }
+
+    if (input === "stop") {
+      // Stop all tracks
+      setTracks((tracks) =>
+        tracks.map((t) => ({ ...t, isPlaying: false }))
+      );
+      logEntry.status = "success";
+      logEntry.command = "stop";
       setCommandLog((prev) => [...prev, logEntry]);
       setNextLogId((id) => id + 1);
       setInput("");
@@ -295,7 +308,12 @@ function App() {
 
     // Dispose of old track resources synchronously
     if (existingTrack?.synth) {
-      existingTrack.synth.dispose();
+      try {
+        existingTrack.synth.dispose();
+      } catch (e) {
+        // Ignore errors from disposing unstarted Players
+        console.warn("Error disposing synth:", e);
+      }
     }
     if (existingTrack?.volume) {
       existingTrack.volume.dispose();
@@ -371,7 +389,7 @@ function App() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. 0 voice:kick pulse:4 or 0 stop"
+            placeholder="e.g. 0 voice:kick pulse:4, 0 stop, or stop (all)"
           />
         </form>
       </div>
