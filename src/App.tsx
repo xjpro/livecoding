@@ -22,7 +22,7 @@ const TRACK_COLORS = [
 // Parse the new DSL syntax
 interface ParsedGlobalCommand {
   type: 'global';
-  command: 'key' | 'scale' | 'stop';
+  command: 'key' | 'scale' | 'stop' | 'bpm';
   value: string;
 }
 
@@ -58,6 +58,15 @@ function parseNewDSL(input: string): ParsedCommand {
       return { type: 'global', command: 'scale', value: match[1] };
     }
     return { type: 'error', message: 'Invalid scale() syntax' };
+  }
+
+  // Global bpm command: bpm(120)
+  if (cleaned.startsWith('bpm(')) {
+    const match = cleaned.match(/^bpm\((\d+)\)$/);
+    if (match) {
+      return { type: 'global', command: 'bpm', value: match[1] };
+    }
+    return { type: 'error', message: 'Invalid bpm() syntax' };
   }
 
   // Global stop command: stop()
@@ -161,7 +170,7 @@ function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [bpm] = useState(60);
+  const [bpm, setBpm] = useState(60);
   const [kit, setKit] = useState<Kit | null>(null);
   const [key, setKey] = useState("C");
   const [scale, setScale] = useState("major");
@@ -321,6 +330,11 @@ function App() {
         setKey(parsed.value);
       } else if (parsed.command === 'scale') {
         setScale(parsed.value);
+      } else if (parsed.command === 'bpm') {
+        const newBpm = parseInt(parsed.value);
+        if (!isNaN(newBpm) && newBpm > 0) {
+          setBpm(newBpm);
+        }
       } else if (parsed.command === 'stop') {
         // Stop all tracks
         setTracks((tracks) =>
