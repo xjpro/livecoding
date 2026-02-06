@@ -8,6 +8,19 @@ import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
 import { TrackList } from "./components/TrackList.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
+// Helper function to apply octave to a note
+function applyOctave(note: string, octaveMin: number, octaveMax: number): string {
+  // Remove existing octave number from note (e.g., "C2" -> "C")
+  const noteWithoutOctave = note.replace(/\d+$/, "");
+
+  // Pick random octave in range (inclusive)
+  const octave = octaveMin === octaveMax
+    ? octaveMin
+    : Math.floor(Math.random() * (octaveMax - octaveMin + 1)) + octaveMin;
+
+  return noteWithoutOctave + octave;
+}
+
 function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
@@ -65,7 +78,8 @@ function App() {
           if (isNotePattern) {
             // Note-based pattern (arp)
             if (typeof value === "string") {
-              triggerSynth(track.synth, time, track.voiceConfig, value);
+              const noteWithOctave = applyOctave(value, track.params.octaveMin, track.params.octaveMax);
+              triggerSynth(track.synth, time, track.voiceConfig, noteWithOctave);
             }
           } else {
             // Rhythm-based pattern (pulse)
@@ -172,6 +186,8 @@ function App() {
     let pan: number | null = null;
     let prob: number | null = null;
     let offset: number | null = null;
+    let octaveMin: number | null = null;
+    let octaveMax: number | null = null;
     let shouldStart = false;
     let shouldStop = false;
 
@@ -190,6 +206,19 @@ function App() {
         prob = parseFloat(part.substring(5));
       } else if (part.startsWith("offset:")) {
         offset = parseInt(part.substring(7));
+      } else if (part.startsWith("oct:")) {
+        const octaveStr = part.substring(4);
+        if (octaveStr.includes(",")) {
+          // Range: oct:1,3
+          const [min, max] = octaveStr.split(",").map((s) => parseInt(s.trim()));
+          octaveMin = min;
+          octaveMax = max;
+        } else {
+          // Single octave: oct:2
+          const octave = parseInt(octaveStr);
+          octaveMin = octave;
+          octaveMax = octave;
+        }
       } else if (part === "start") {
         shouldStart = true;
       } else if (part === "stop") {
@@ -207,7 +236,9 @@ function App() {
       !gain &&
       !pan &&
       !prob &&
-      offset === null
+      offset === null &&
+      octaveMin === null &&
+      octaveMax === null
     ) {
       if (!existingTrack) {
         logEntry.status = "error";
@@ -241,7 +272,7 @@ function App() {
     }
 
     // Check if only hot parameters are changing (no recreation needed)
-    const needsRecreation = voice !== null || patternStr !== null || offset !== null;
+    const needsRecreation = voice !== null || patternStr !== null || offset !== null || octaveMin !== null || octaveMax !== null;
 
     if (!needsRecreation && existingTrack) {
       // Update hot parameters directly - no synth recreation
@@ -283,6 +314,8 @@ function App() {
     const finalPan = pan ?? existingTrack?.pan ?? 0;
     const finalProb = prob ?? existingTrack?.prob ?? 1;
     const finalOffset = offset ?? existingTrack?.offset ?? 0;
+    const finalOctaveMin = octaveMin ?? existingTrack?.octaveMin ?? 2;
+    const finalOctaveMax = octaveMax ?? existingTrack?.octaveMax ?? 2;
 
     // Get voice configuration from kit
     if (!kit) {
@@ -340,6 +373,8 @@ function App() {
     const params: TrackParams = {
       prob: finalProb,
       pattern: parsedPattern,
+      octaveMin: finalOctaveMin,
+      octaveMax: finalOctaveMax,
     };
 
     // Determine if track should be playing
@@ -360,6 +395,8 @@ function App() {
       pan: finalPan,
       prob: finalProb,
       offset: finalOffset,
+      octaveMin: finalOctaveMin,
+      octaveMax: finalOctaveMax,
       synth,
       volume,
       panner,

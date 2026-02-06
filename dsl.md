@@ -37,6 +37,7 @@ Global commands don't require a track number and affect all subsequent tracks.
 | `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right) |
 | `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance) |
 | `offset:[steps]` | 0 to n | Shift pattern forward by N steps (wraps around) |
+| `oct:[octave]` or `oct:[min,max]` | 0 to 8 | Set octave for note patterns. Single value (e.g., `oct:2`) sets fixed octave. Range (e.g., `oct:1,3`) randomly picks octave per note. Defaults to 2. |
 
 ### Control Commands
 
@@ -98,4 +99,16 @@ scale:major
 key:A
 scale:minor
 2 voice:bass arp:1,4,5,1
+```
+
+### Octave Control
+```
+# Set fixed octave for bass line
+0 voice:bass arp:1,1,5,1 oct:1
+
+# Use octave range for variation (randomly picks octave 1, 2, or 3 for each note)
+1 voice:bass arp:1,4,5,1 oct:1,3
+
+# Change octave on existing track
+0 oct:4
 ```

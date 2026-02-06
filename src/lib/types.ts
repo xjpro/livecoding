@@ -3,6 +3,8 @@ import * as Tone from "tone";
 export interface TrackParams {
   prob: number;
   pattern: (number | string)[];  // Parsed pattern for master clock to read
+  octaveMin: number;
+  octaveMax: number;
 }
 
 export interface Track {
@@ -15,6 +17,8 @@ export interface Track {
   pan: number;
   prob: number;
   offset: number;
+  octaveMin: number;
+  octaveMax: number;
   synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player;
   volume?: Tone.Volume;
   panner?: Tone.Panner;
