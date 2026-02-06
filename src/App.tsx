@@ -5,7 +5,7 @@ import { parsePattern, applyOffset } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
 import { Track, Kit, TrackParams } from "./lib/types.ts";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
-import { TrackList } from "./components/TrackList.tsx";
+import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
 // Helper function to apply octave to a note
@@ -422,7 +422,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <TrackList tracks={tracks} />
+      <TrackVisualizer tracks={tracks} globalStepRef={globalStepRef} />
 
       <CommandLog entries={commandLog} />
 

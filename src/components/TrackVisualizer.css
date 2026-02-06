@@ -1,0 +1,129 @@
+.track-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.track-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.track-row--playing {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.track-row--stopped {
+  opacity: 0.6;
+}
+
+.track-row--empty {
+  opacity: 0.3;
+}
+
+.track-header {
+  font-family: monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  padding-bottom: 4px;
+}
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 3px;
+  width: 100%;
+}
+
+.pattern-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.1s ease;
+  position: relative;
+}
+
+.pattern-cell--placeholder {
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: transparent;
+}
+
+.pattern-cell--empty {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+}
+
+.pattern-cell--filled {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.pattern-cell--note {
+  background: rgba(100, 150, 255, 0.4);
+  border: 1px solid rgba(100, 150, 255, 0.6);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.pattern-cell--current {
+  animation: pulse-glow 0.15s ease-in-out;
+  box-shadow: 0 0 8px rgba(255, 200, 0, 0.8);
+  border-color: rgba(255, 200, 0, 1);
+  z-index: 1;
+}
+
+.pattern-cell--current.pattern-cell--filled {
+  background: rgba(255, 200, 0, 0.9);
+}
+
+.pattern-cell--current.pattern-cell--note {
+  background: rgba(255, 200, 0, 0.7);
+}
+
+.pattern-cell--current.pattern-cell--empty {
+  border-color: rgba(255, 200, 0, 0.8);
+  background: rgba(255, 200, 0, 0.2);
+}
+
+.note-text {
+  font-family: monospace;
+  font-size: 9px;
+  line-height: 1;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes pulse-glow {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .pattern-grid {
+    gap: 2px;
+  }
+
+  .track-header {
+    font-size: 11px;
+  }
+
+  .note-text {
+    font-size: 8px;
+  }
+}
