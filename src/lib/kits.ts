@@ -24,14 +24,48 @@ export async function loadKit(kitName: string): Promise<Kit> {
 
   // Load each voice from the manifest
   for (const voiceName of manifest.voices) {
+    let loaded = false;
+
+    // Try loading .json config first
     try {
-      const response = await fetch(`/kits/${kitName}/${voiceName}.json`);
-      if (response.ok) {
-        const voiceConfig: VoiceConfig = await response.json();
+      const jsonResponse = await fetch(`/kits/${kitName}/${voiceName}.json`);
+      if (jsonResponse.ok) {
+        const synthConfig = await jsonResponse.json();
+        const voiceConfig: VoiceConfig = {
+          ...synthConfig,
+          type: "synth" as const,
+        };
         voices.set(voiceName, voiceConfig);
+        loaded = true;
       }
     } catch (error) {
-      console.error(`Failed to load voice ${voiceName} from kit ${kitName}:`, error);
+      // JSON file doesn't exist or failed to parse, try samples
+    }
+
+    // If JSON didn't load, try loading sample files
+    if (!loaded) {
+      for (const ext of ['.wav', '.mp3', '.ogg']) {
+        try {
+          const sampleResponse = await fetch(`/kits/${kitName}/${voiceName}${ext}`);
+          if (sampleResponse.ok) {
+            const voiceConfig: VoiceConfig = {
+              name: voiceName,
+              type: "sample" as const,
+              sampleUrl: `/kits/${kitName}/${voiceName}${ext}`,
+            };
+            voices.set(voiceName, voiceConfig);
+            console.log(`Loaded sample: ${voiceName}${ext}`);
+            loaded = true;
+            break;
+          }
+        } catch (error) {
+          // This extension doesn't exist, try next
+        }
+      }
+    }
+
+    if (!loaded) {
+      console.warn(`Could not load voice ${voiceName} from kit ${kitName}`);
     }
   }
 

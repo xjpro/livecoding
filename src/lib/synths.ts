@@ -1,10 +1,21 @@
 import * as Tone from "tone";
 import type { VoiceConfig } from "./types";
 
-// Create synth for voice using voice configuration
+// Create synth or player for voice using voice configuration
 export function createSynth(
   voiceConfig: VoiceConfig,
-): Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth {
+): Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player {
+  if (voiceConfig.type === "sample") {
+    const player = new Tone.Player({
+      url: voiceConfig.sampleUrl,
+      onload: () => console.log(`Sample loaded: ${voiceConfig.name}`),
+    });
+    if (voiceConfig.trigger?.playbackRate) {
+      player.playbackRate = voiceConfig.trigger.playbackRate;
+    }
+    return player;
+  }
+
   let synth: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth;
 
   switch (voiceConfig.synthType) {
@@ -25,14 +36,18 @@ export function createSynth(
 }
 
 export function triggerSynth(
-  synth: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth,
+  synth: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player,
   time: number,
   voiceConfig: VoiceConfig,
   note?: string,
 ) {
-  synth.triggerAttackRelease(
-    note ?? voiceConfig.trigger.note,
-    voiceConfig.trigger.duration,
-    time,
-  );
+  if (synth instanceof Tone.Player) {
+    synth.start(time);
+  } else {
+    synth.triggerAttackRelease(
+      note ?? voiceConfig.trigger.note,
+      voiceConfig.trigger.duration,
+      time,
+    );
+  }
 }

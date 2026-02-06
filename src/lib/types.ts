@@ -15,15 +15,16 @@ export interface Track {
   pan: number;
   prob: number;
   offset: number;
-  synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth;
+  synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player;
   volume?: Tone.Volume;
   panner?: Tone.Panner;
   params?: TrackParams;
   voiceConfig?: import("./types").VoiceConfig;
 }
 
-export interface VoiceConfig {
+export interface SynthVoiceConfig {
   name: string;
+  type: "synth";
   synthType: "Synth" | "MembraneSynth" | "MetalSynth";
   synthParams: Record<string, unknown>;
   trigger: {
@@ -31,6 +32,17 @@ export interface VoiceConfig {
     duration: string;
   };
 }
+
+export interface SampleVoiceConfig {
+  name: string;
+  type: "sample";
+  sampleUrl: string;
+  trigger?: {
+    playbackRate?: number;
+  };
+}
+
+export type VoiceConfig = SynthVoiceConfig | SampleVoiceConfig;
 
 export interface Kit {
   name: string;
