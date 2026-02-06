@@ -3,7 +3,7 @@ import * as Tone from "tone";
 import "./App.css";
 import { parsePattern, applyOffset } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
-import { Track, Kit } from "./lib/types.ts";
+import { Track, Kit, TrackParams } from "./lib/types.ts";
 import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
 import { TrackList } from "./components/TrackList.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
@@ -180,6 +180,46 @@ function App() {
       return;
     }
 
+    // Check if only hot parameters are changing (no recreation needed)
+    const needsRecreation = voice !== null || patternStr !== null || offset !== null;
+
+    if (!needsRecreation && existingTrack) {
+      // Update hot parameters directly - no sequence recreation
+      if (gain !== null && existingTrack.volume) {
+        existingTrack.volume.volume.value = Tone.gainToDb(gain);
+      }
+      if (pan !== null && existingTrack.panner) {
+        existingTrack.panner.pan.value = pan;
+      }
+      if (speed !== null && existingTrack.sequence) {
+        existingTrack.sequence.playbackRate = speed;
+      }
+      if (prob !== null && existingTrack.params) {
+        existingTrack.params.prob = prob;
+      }
+
+      // Update React state with new parameter values
+      setTracks((tracks) =>
+        tracks.map((t) =>
+          t.id === trackId
+            ? {
+                ...t,
+                gain: gain ?? t.gain,
+                pan: pan ?? t.pan,
+                speed: speed ?? t.speed,
+                prob: prob ?? t.prob,
+                dsl: input,
+              }
+            : t,
+        ),
+      );
+
+      setCommandLog((prev) => [...prev, logEntry]);
+      setNextLogId((id) => id + 1);
+      setInput("");
+      return;
+    }
+
     // Merge with existing track properties
     const finalVoice = voice ?? existingTrack?.voice ?? "kick";
     const finalPattern = patternStr ?? existingTrack?.pattern ?? "pulse:4";
@@ -211,28 +251,18 @@ function App() {
       return;
     }
 
-    // Dispose of old track resources if they exist
+    // Dispose of old track resources synchronously (official Tone.js pattern)
     if (existingTrack?.sequence) {
-      const stopTime = Tone.getTransport().state === "started" ? "@1m" : 0;
-      existingTrack.sequence.stop(stopTime);
-      setTimeout(() => {
-        existingTrack.sequence?.dispose();
-      }, 1000);
+      existingTrack.sequence.dispose();
     }
     if (existingTrack?.synth) {
-      setTimeout(() => {
-        existingTrack.synth?.dispose();
-      }, 1000);
+      existingTrack.synth.dispose();
     }
     if (existingTrack?.volume) {
-      setTimeout(() => {
-        existingTrack.volume?.dispose();
-      }, 1000);
+      existingTrack.volume.dispose();
     }
     if (existingTrack?.panner) {
-      setTimeout(() => {
-        existingTrack.panner?.dispose();
-      }, 1000);
+      existingTrack.panner.dispose();
     }
 
     // Create audio chain: synth -> volume -> panner -> destination
@@ -252,11 +282,14 @@ function App() {
     // Check if pattern contains notes (strings) or just rhythm (numbers)
     const isNotePattern = pattern.some((val) => typeof val === "string");
 
+    // Create mutable params object so probability can be updated without recreation
+    const params: TrackParams = { prob: finalProb };
+
     // Create Tone.js sequence
     const sequence = new Tone.Sequence(
       (time, step) => {
-        // Apply probability
-        if (Math.random() > finalProb) return;
+        // Apply probability from mutable params ref
+        if (Math.random() > params.prob) return;
 
         const value = pattern[step % pattern.length];
 
@@ -315,6 +348,7 @@ function App() {
       synth,
       volume,
       panner,
+      params,
     };
 
     setTracks((tracks) => {

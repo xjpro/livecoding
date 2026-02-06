@@ -1,11 +1,15 @@
 import * as Tone from "tone";
 
+export interface TrackParams {
+  prob: number;
+}
+
 export interface Track {
   id: number;
   voice: string;
   pattern: string;
   dsl: string;
-  sequence?: Tone.Part;
+  sequence?: Tone.Sequence;
   isPlaying: boolean;
   gain: number;
   speed: number;
@@ -15,6 +19,7 @@ export interface Track {
   synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth;
   volume?: Tone.Volume;
   panner?: Tone.Panner;
+  params?: TrackParams;
 }
 
 export interface VoiceConfig {
