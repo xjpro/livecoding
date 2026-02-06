@@ -38,7 +38,7 @@ export async function loadKit(kitName: string): Promise<Kit> {
         voices.set(voiceName, voiceConfig);
         loaded = true;
       }
-    } catch (error) {
+    } catch {
       // JSON file doesn't exist or failed to parse, try samples
     }
 
@@ -58,7 +58,7 @@ export async function loadKit(kitName: string): Promise<Kit> {
             loaded = true;
             break;
           }
-        } catch (error) {
+        } catch {
           // This extension doesn't exist, try next
         }
       }

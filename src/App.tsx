@@ -1,10 +1,9 @@
-import { useEffect, useState, useRef, FormEvent } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./App.css";
 import { parsePattern, applyOffset } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
 import { Track, Kit, TrackParams } from "./lib/types.ts";
-import { CommandLog, CommandLogEntry } from "./components/CommandLog.tsx";
 import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
 
@@ -110,8 +109,6 @@ function App() {
   const [input, setInput] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [bpm] = useState(60);
-  const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
-  const [nextLogId, setNextLogId] = useState(0);
   const [kit, setKit] = useState<Kit | null>(null);
   const [key, setKey] = useState("C");
   const [scale, setScale] = useState("major");
@@ -193,10 +190,48 @@ function App() {
     }
   }, [started]);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Handle Cmd/Ctrl + Enter for command submission
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      const textareaElement = event.currentTarget;
 
-    const commandText = input.trim();
+      // Get selected text or all text if nothing selected
+      const selectedText = textareaElement.value.substring(
+        textareaElement.selectionStart,
+        textareaElement.selectionEnd
+      );
+
+      const commandText = selectedText.trim() || textareaElement.value.trim();
+
+      if (commandText) {
+        submitCommand(commandText);
+      }
+    }
+
+    // Handle Tab key for indentation (insert 2 spaces)
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      const textarea = event.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      // Insert 2 spaces at cursor position
+      const newValue =
+        textarea.value.substring(0, start) +
+        '  ' +
+        textarea.value.substring(end);
+
+      setInput(newValue);
+
+      // Move cursor after inserted spaces
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 2;
+      }, 0);
+    }
+  }
+
+  async function submitCommand(commandText: string) {
     if (!commandText) return; // Skip empty commands
 
     // Auto-start on first command
@@ -205,24 +240,12 @@ function App() {
       setStarted(true);
     }
 
-    const logEntry: CommandLogEntry = {
-      id: nextLogId,
-      timestamp: Date.now(),
-      command: commandText,
-      status: "success",
-    };
-
     // Parse the new DSL syntax
     const parsed = parseNewDSL(commandText);
 
     // Handle parse errors
     if (parsed.type === 'error') {
-      logEntry.status = "error";
-      logEntry.errorMessage = parsed.message;
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
       console.error(parsed.message);
-      setInput("");
       return;
     }
 
@@ -230,14 +253,9 @@ function App() {
     if (parsed.type === 'global') {
       if (parsed.command === 'key') {
         setKey(parsed.value);
-        logEntry.command = `Set key to ${parsed.value}`;
       } else if (parsed.command === 'scale') {
         setScale(parsed.value);
-        logEntry.command = `Set scale to ${parsed.value}`;
       }
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
       return;
     }
 
@@ -331,12 +349,7 @@ function App() {
       octaveMax === null
     ) {
       if (!existingTrack) {
-        logEntry.status = "error";
-        logEntry.errorMessage = `Track ${trackId} not found`;
-        setCommandLog((prev) => [...prev, logEntry]);
-        setNextLogId((id) => id + 1);
-        console.error(logEntry.errorMessage);
-        setInput("");
+        console.error(`Track ${trackId} not found`);
         return;
       }
 
@@ -354,10 +367,6 @@ function App() {
         );
       }
 
-      // After the stop command block
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
       return;
     }
 
@@ -391,15 +400,12 @@ function App() {
                 prob: prob ?? t.prob,
                 octaveMin: octaveMin ?? t.octaveMin,
                 octaveMax: octaveMax ?? t.octaveMax,
-                dsl: input,
+                dsl: commandText,
               }
             : t,
         ),
       );
 
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      setInput("");
       return;
     }
 
@@ -415,23 +421,13 @@ function App() {
 
     // Get voice configuration from kit
     if (!kit) {
-      logEntry.status = "error";
-      logEntry.errorMessage = "Kit not loaded yet";
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      console.error(logEntry.errorMessage);
-      setInput("");
+      console.error("Kit not loaded yet");
       return;
     }
 
     const voiceConfig = getVoiceConfig(kit, finalVoice);
     if (!voiceConfig) {
-      logEntry.status = "error";
-      logEntry.errorMessage = `Voice "${finalVoice}" not found in kit "${kit.name}"`;
-      setCommandLog((prev) => [...prev, logEntry]);
-      setNextLogId((id) => id + 1);
-      console.error(logEntry.errorMessage);
-      setInput("");
+      console.error(`Voice "${finalVoice}" not found in kit "${kit.name}"`);
       return;
     }
 
@@ -485,7 +481,7 @@ function App() {
       id: trackId,
       voice: finalVoice,
       pattern: finalPattern,
-      dsl: input,
+      dsl: commandText,
       isPlaying: willBePlaying,
       gain: finalGain,
       pan: finalPan,
@@ -504,25 +500,36 @@ function App() {
       const filtered = tracks.filter((t) => t.id !== trackId);
       return [...filtered, newTrack].sort((a, b) => a.id - b.id);
     });
-
-    setCommandLog((prev) => [...prev, logEntry]);
-    setNextLogId((id) => id + 1);
-    setInput("");
   }
 
   return (
     <div className="app-container">
       <TrackVisualizer tracks={tracks} globalStepRef={globalStepRef} />
 
-      <CommandLog entries={commandLog} />
-
       <div className="app-controls">
-        <form onSubmit={submit}>
-          <input
-            type="text"
+        <form onSubmit={(e) => e.preventDefault()}>
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g. t0.voice('kick').pulse(4); or key('C');"
+            onKeyDown={handleKeyDown}
+            placeholder="// Live coding sequencer - Press Cmd/Ctrl + Enter to execute
+
+// Basic beat
+t0.voice('kick').pulse(4);
+t1.voice('hat').pulse(16);
+
+// Set key and scale
+key('C');
+scale('major');
+
+// Bass line
+t2.voice('bass').arp(1,1,5,1).oct(2);
+
+// Tip: Select code to run just that portion, or run all if nothing selected"
+            rows={12}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
           />
         </form>
       </div>
