@@ -3,7 +3,7 @@
 Each command starts with an index to a track followed by a space. Should that track not exist it is created.
 
 Following the track index is one or more space-seperated command parts which set aspects of
-the track: voice, pattern, gain, speed, pan, prob, etc.
+the track: voice, pattern, gain, pan, prob, etc.
 
 ## Global Commands
 
@@ -34,7 +34,6 @@ Global commands don't require a track number and affect all subsequent tracks.
 | Command | Range | Description |
 |---------|-------|-------------|
 | `gain:[value]` | 0 to 1 | Volume control (0 = silent, 1 = full volume) |
-| `speed:[value]` | 0 to n | Tempo multiplier (1 = normal, 2 = double speed, 0.5 = half speed) |
 | `pan:[value]` | -1 to 1 | Stereo position (-1 = left, 0 = center, 1 = right) |
 | `prob:[value]` | 0 to 1 | Probability of hit playing (1 = always, 0.5 = 50% chance) |
 | `offset:[steps]` | 0 to n | Shift pattern forward by N steps (wraps around) |
@@ -73,8 +72,8 @@ Global commands don't require a track number and affect all subsequent tracks.
 ### Modifying Tracks
 ```
 0 gain:1 start
-0 speed:2 gain:0.5
-1 speed:0.5 prob:0.9 start
+0 gain:0.5 pan:-0.5
+1 prob:0.9 start
 ```
 
 ### Control Commands

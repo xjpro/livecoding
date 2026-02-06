@@ -2,17 +2,16 @@ import * as Tone from "tone";
 
 export interface TrackParams {
   prob: number;
+  pattern: (number | string)[];  // Parsed pattern for master clock to read
 }
 
 export interface Track {
   id: number;
   voice: string;
-  pattern: string;
+  pattern: string;  // Original pattern string (e.g., "pulse:4")
   dsl: string;
-  sequence?: Tone.Sequence;
   isPlaying: boolean;
   gain: number;
-  speed: number;
   pan: number;
   prob: number;
   offset: number;
@@ -20,6 +19,7 @@ export interface Track {
   volume?: Tone.Volume;
   panner?: Tone.Panner;
   params?: TrackParams;
+  voiceConfig?: import("./types").VoiceConfig;
 }
 
 export interface VoiceConfig {

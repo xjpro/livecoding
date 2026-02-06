@@ -10,7 +10,6 @@ export function TrackList({ tracks }: TrackListProps) {
       {tracks.map((track) => {
         const modifiers = [];
         if (track.gain !== 1) modifiers.push(`gain:${track.gain}`);
-        if (track.speed !== 1) modifiers.push(`speed:${track.speed}`);
         if (track.pan !== 0) modifiers.push(`pan:${track.pan}`);
         if (track.prob !== 1) modifiers.push(`prob:${track.prob}`);
 
