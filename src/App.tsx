@@ -1,11 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./App.css";
-import { parsePattern, applyOffset, generateOn, applyOnModifier, applyOffModifier } from "./lib/patterns.ts";
+import { applyOffset, resolvePattern, applyOctave } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
-import { Track, Kit, TrackParams } from "./lib/types.ts";
+import { TrackData, TrackRuntime, Kit } from "./lib/types.ts";
 import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
 import { getActiveKit, getVoiceConfig } from "./lib/kits.ts";
+import { parseNewDSL } from "./lib/dsl.ts";
+import {
+  extractTrackUpdate,
+  isStartStopOnly,
+  isHotUpdateOnly,
+  resolveTrackState,
+} from "./lib/command.ts";
 
 // Track colors matching TrackVisualizer.css rainbow sequence
 const TRACK_COLORS = [
@@ -19,129 +26,8 @@ const TRACK_COLORS = [
   { id: 7, hsl: "300, 100%, 50%" }, // Purple
 ];
 
-// Parse the new DSL syntax
-interface ParsedGlobalCommand {
-  type: "global";
-  command: "key" | "scale" | "stop" | "bpm";
-  value: string;
-}
-
-interface ParsedTrackCommand {
-  type: "track";
-  trackId: number;
-  methods: Array<{ name: string; args: (string | number)[] }>;
-}
-
-interface ParsedError {
-  type: "error";
-  message: string;
-}
-
-type ParsedCommand = ParsedGlobalCommand | ParsedTrackCommand | ParsedError;
-
-function parseNewDSL(input: string): ParsedCommand {
-  // Remove semicolon and trim
-  const cleaned = input.replace(/;$/, "").trim();
-
-  // Global commands: key('C') or scale('major')
-  if (cleaned.startsWith("key(")) {
-    const match = cleaned.match(/^key\(['"](.+)['"]\)$/);
-    if (match) {
-      return { type: "global", command: "key", value: match[1] };
-    }
-    return { type: "error", message: "Invalid key() syntax" };
-  }
-
-  if (cleaned.startsWith("scale(")) {
-    const match = cleaned.match(/^scale\(['"](.+)['"]\)$/);
-    if (match) {
-      return { type: "global", command: "scale", value: match[1] };
-    }
-    return { type: "error", message: "Invalid scale() syntax" };
-  }
-
-  // Global bpm command: bpm(120)
-  if (cleaned.startsWith("bpm(")) {
-    const match = cleaned.match(/^bpm\((\d+)\)$/);
-    if (match) {
-      return { type: "global", command: "bpm", value: match[1] };
-    }
-    return { type: "error", message: "Invalid bpm() syntax" };
-  }
-
-  // Global stop command: stop()
-  if (cleaned === "stop()") {
-    return { type: "global", command: "stop", value: "" };
-  }
-
-  // Track commands: t0.voice('kick').pulse(4)
-  const trackMatch = cleaned.match(/^t(\d+)\.(.+)$/);
-  if (!trackMatch) {
-    return {
-      type: "error",
-      message: "Invalid syntax. Expected: t0.method() or key()/scale()",
-    };
-  }
-
-  const trackId = parseInt(trackMatch[1]);
-  const methodChain = trackMatch[2];
-
-  // Parse method calls
-  const methods: Array<{ name: string; args: (string | number)[] }> = [];
-  const methodRegex = /(\w+)\(([^)]*)\)/g;
-  let match;
-
-  while ((match = methodRegex.exec(methodChain)) !== null) {
-    const methodName = match[1];
-    const argsStr = match[2];
-
-    // Parse arguments
-    const args: (string | number)[] = [];
-    if (argsStr.trim()) {
-      // Split by comma, but respect quotes
-      const argMatches = argsStr.match(/(?:[^,'"]+|'[^']*'|"[^"]*")+/g) || [];
-      for (const arg of argMatches) {
-        const trimmed = arg.trim();
-        // Remove quotes from strings
-        if (
-          (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-          (trimmed.startsWith("'") && trimmed.endsWith("'"))
-        ) {
-          args.push(trimmed.slice(1, -1));
-        } else {
-          // Try to parse as number
-          const num = parseFloat(trimmed);
-          args.push(isNaN(num) ? trimmed : num);
-        }
-      }
-    }
-
-    methods.push({ name: methodName, args });
-  }
-
-  return { type: "track", trackId, methods };
-}
-
-// Helper function to apply octave to a note
-function applyOctave(
-  note: string,
-  octaveMin: number,
-  octaveMax: number,
-): string {
-  // Remove existing octave number from note (e.g., "C2" -> "C")
-  const noteWithoutOctave = note.replace(/\d+$/, "");
-
-  // Pick random octave in range (inclusive)
-  const octave =
-    octaveMin === octaveMax
-      ? octaveMin
-      : Math.floor(Math.random() * (octaveMax - octaveMin + 1)) + octaveMin;
-
-  return noteWithoutOctave + octave;
-}
-
 function getGlowStyles(
-  tracks: Track[],
+  tracks: TrackData[],
   pulseIntensity: number,
 ): React.CSSProperties {
   // Filter to find currently playing tracks
@@ -182,16 +68,19 @@ function getGlowStyles(
 function App() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracks] = useState<TrackData[]>([]);
   const [bpm, setBpm] = useState(60);
   const [kit, setKit] = useState<Kit | null>(null);
   const [key, setKey] = useState("C");
   const [scale, setScale] = useState("major");
 
   // Ref to hold current tracks for master clock callback
-  const tracksRef = useRef<Track[]>([]);
+  const tracksRef = useRef<TrackData[]>([]);
   const globalStepRef = useRef(0);
   const [glowPulse, setGlowPulse] = useState(1.0);
+
+  // Runtime map: live Tone.js objects, keyed by track ID
+  const runtimeMapRef = useRef<Map<number, TrackRuntime>>(new Map());
 
   // Keep tracksRef in sync with tracks state
   useEffect(() => {
@@ -217,20 +106,24 @@ function App() {
     setTracks((currentTracks) =>
       currentTracks.map((track) => {
         // Only recompute arp patterns (pulse patterns don't use key/scale)
-        if (!track.pattern.startsWith("arp:")) {
+        if (!track.patternSpec || track.patternSpec.type !== "arp") {
           return track;
         }
 
-        // Reparse pattern with new key/scale
-        const basePattern = parsePattern(track.pattern, key, scale);
+        // Resolve pattern with new key/scale
+        const basePattern = resolvePattern(track.patternSpec, key, scale);
         const newPattern = applyOffset(basePattern, track.offset);
 
-        // Update only params.pattern, preserve everything else
+        // Update the runtime params too (for master clock)
+        const runtime = runtimeMapRef.current.get(track.id);
+        if (runtime) {
+          // We store prob/octave/pattern on TrackData now, but runtime
+          // doesn't hold params — the master clock reads from tracksRef
+        }
+
         return {
           ...track,
-          params: track.params
-            ? { ...track.params, pattern: newPattern }
-            : undefined,
+          parsedPattern: newPattern,
         };
       }),
     );
@@ -241,23 +134,20 @@ function App() {
     const eventId = Tone.getTransport().scheduleRepeat(
       (time) => {
         const currentTracks = tracksRef.current;
+        const runtimeMap = runtimeMapRef.current;
         const step = globalStepRef.current;
         let soundTriggered = false;
 
         currentTracks.forEach((track) => {
-          if (
-            !track.isPlaying ||
-            !track.synth ||
-            !track.params ||
-            !track.voiceConfig
-          ) {
-            return;
-          }
+          if (!track.isPlaying || track.parsedPattern.length === 0) return;
+
+          const runtime = runtimeMap.get(track.id);
+          if (!runtime) return;
 
           // Apply probability
-          if (Math.random() > track.params.prob) return;
+          if (Math.random() > track.prob) return;
 
-          const pattern = track.params.pattern;
+          const pattern = track.parsedPattern;
           const localStep = step % pattern.length;
           const value = pattern[localStep];
 
@@ -269,13 +159,13 @@ function App() {
             if (typeof value === "string") {
               const noteWithOctave = applyOctave(
                 value,
-                track.params.octaveMin,
-                track.params.octaveMax,
+                track.octaveMin,
+                track.octaveMax,
               );
               triggerSynth(
-                track.synth,
+                runtime.synth,
                 time,
-                track.voiceConfig,
+                runtime.voiceConfig,
                 noteWithOctave,
               );
               soundTriggered = true;
@@ -283,7 +173,7 @@ function App() {
           } else {
             // Rhythm-based pattern (pulse)
             if (value === 1) {
-              triggerSynth(track.synth, time, track.voiceConfig);
+              triggerSynth(runtime.synth, time, runtime.voiceConfig);
               soundTriggered = true;
             }
           }
@@ -341,7 +231,7 @@ function App() {
         const cursorPos = textareaElement.selectionStart;
 
         // Find start of current line (search backwards for newline)
-        let lineStart = text.lastIndexOf("\n", cursorPos - 1) + 1;
+        const lineStart = text.lastIndexOf("\n", cursorPos - 1) + 1;
 
         // Find end of current line (search forwards for newline)
         let lineEnd = text.indexOf("\n", cursorPos);
@@ -382,7 +272,7 @@ function App() {
   }
 
   async function submitCommand(commandText: string) {
-    if (!commandText) return; // Skip empty commands
+    if (!commandText) return;
 
     // Auto-start on first command
     if (!started) {
@@ -390,16 +280,15 @@ function App() {
       setStarted(true);
     }
 
-    // Parse the new DSL syntax
+    // 1. Parse
     const parsed = parseNewDSL(commandText);
 
-    // Handle parse errors
     if (parsed.type === "error") {
       console.error(parsed.message);
       return;
     }
 
-    // Handle global commands
+    // 2. Global commands → set React state
     if (parsed.type === "global") {
       if (parsed.command === "key") {
         setKey(parsed.value);
@@ -411,315 +300,123 @@ function App() {
           setBpm(newBpm);
         }
       } else if (parsed.command === "stop") {
-        // Stop all tracks
         setTracks((tracks) => tracks.map((t) => ({ ...t, isPlaying: false })));
       }
       return;
     }
 
-    // Handle track commands
+    // 3. Extract intent
     const trackId = parsed.trackId;
-    const methods = parsed.methods;
+    const update = extractTrackUpdate(parsed.methods);
+    const existingData = tracks.find((t) => t.id === trackId);
 
-    // Parse method calls into parameters
-    let voice: string | null = null;
-    let patternStr: string | null = null;
-    let onSteps: number[] = [];
-    let offSteps: number[] = [];
-    let gain: number | null = null;
-    let pan: number | null = null;
-    let prob: number | null = null;
-    let offset: number | null = null;
-    let octaveMin: number | null = null;
-    let octaveMax: number | null = null;
-    let shouldStart = false;
-    let shouldStop = false;
-
-    for (const method of methods) {
-      switch (method.name) {
-        case "voice":
-          if (method.args.length > 0 && typeof method.args[0] === "string") {
-            voice = method.args[0];
-          }
-          break;
-        case "pulse":
-          if (method.args.length === 1) {
-            patternStr = `pulse:${method.args[0]}`;
-          } else if (method.args.length === 2) {
-            patternStr = `pulse:${method.args[0]},${method.args[1]}`;
-          }
-          break;
-        case "euclid":
-          if (method.args.length === 1) {
-            patternStr = `euclid:${method.args[0]}`;
-          } else if (method.args.length === 2) {
-            patternStr = `euclid:${method.args[0]},${method.args[1]}`;
-          }
-          break;
-        case "on":
-          if (method.args.length > 0) {
-            // Collect on steps to be added to base pattern
-            onSteps = method.args.filter((arg): arg is number => typeof arg === "number");
-          }
-          break;
-        case "off":
-          if (method.args.length > 0) {
-            // Collect off steps to be removed from base pattern
-            offSteps = method.args.filter((arg): arg is number => typeof arg === "number");
-          }
-          break;
-        case "arp":
-          if (method.args.length > 0) {
-            patternStr = `arp:${method.args.join(",")}`;
-          }
-          break;
-        case "gain":
-          if (method.args.length > 0 && typeof method.args[0] === "number") {
-            gain = method.args[0];
-          }
-          break;
-        case "pan":
-          if (method.args.length > 0 && typeof method.args[0] === "number") {
-            pan = method.args[0];
-          }
-          break;
-        case "prob":
-          if (method.args.length > 0 && typeof method.args[0] === "number") {
-            prob = method.args[0];
-          }
-          break;
-        case "offset":
-          if (method.args.length > 0 && typeof method.args[0] === "number") {
-            offset = method.args[0];
-          }
-          break;
-        case "oct":
-          if (method.args.length === 1 && typeof method.args[0] === "number") {
-            octaveMin = method.args[0];
-            octaveMax = method.args[0];
-          } else if (
-            method.args.length === 2 &&
-            typeof method.args[0] === "number" &&
-            typeof method.args[1] === "number"
-          ) {
-            octaveMin = method.args[0];
-            octaveMax = method.args[1];
-          }
-          break;
-        case "start":
-          shouldStart = true;
-          break;
-        case "stop":
-          shouldStop = true;
-          break;
-      }
-    }
-
-    // Get existing track or prepare defaults
-    const existingTrack = tracks.find((t) => t.id === trackId);
-
-    // If only start/stop commands with no other changes
-    if (
-      !voice &&
-      !patternStr &&
-      onSteps.length === 0 &&
-      offSteps.length === 0 &&
-      !gain &&
-      !pan &&
-      !prob &&
-      offset === null &&
-      octaveMin === null &&
-      octaveMax === null
-    ) {
-      if (!existingTrack) {
+    // 4. Start/stop only path
+    if (isStartStopOnly(update)) {
+      if (!existingData) {
         console.error(`Track ${trackId} not found`);
         return;
       }
-
-      if (shouldStart && !existingTrack.isPlaying) {
+      if (update.shouldStart && !existingData.isPlaying) {
         setTracks((tracks) =>
           tracks.map((t) => (t.id === trackId ? { ...t, isPlaying: true } : t)),
         );
       }
-
-      if (shouldStop && existingTrack.isPlaying) {
+      if (update.shouldStop && existingData.isPlaying) {
         setTracks((tracks) =>
           tracks.map((t) =>
             t.id === trackId ? { ...t, isPlaying: false } : t,
           ),
         );
       }
-
       return;
     }
 
-    // Check if only hot parameters are changing (no recreation needed)
-    const needsRecreation =
-      voice !== null || patternStr !== null || onSteps.length > 0 || offSteps.length > 0 || offset !== null;
-
-    if (!needsRecreation && existingTrack) {
-      // Update hot parameters directly - no synth recreation
-      if (gain !== null && existingTrack.volume) {
-        existingTrack.volume.volume.value = Tone.gainToDb(gain);
-      }
-      if (pan !== null && existingTrack.panner) {
-        existingTrack.panner.pan.value = pan;
-      }
-      if (prob !== null && existingTrack.params) {
-        existingTrack.params.prob = prob;
-      }
-      if ((octaveMin !== null || octaveMax !== null) && existingTrack.params) {
-        existingTrack.params.octaveMin =
-          octaveMin ?? existingTrack.params.octaveMin;
-        existingTrack.params.octaveMax =
-          octaveMax ?? existingTrack.params.octaveMax;
+    // 5. Hot path — mutate runtime objects + update React state (no synth recreation)
+    if (isHotUpdateOnly(update) && existingData) {
+      const runtime = runtimeMapRef.current.get(trackId);
+      if (runtime) {
+        if (update.gain !== null) {
+          runtime.volume.volume.value = Tone.gainToDb(update.gain);
+        }
+        if (update.pan !== null) {
+          runtime.panner.pan.value = update.pan;
+        }
       }
 
-      // Update React state with new parameter values
       setTracks((tracks) =>
         tracks.map((t) =>
           t.id === trackId
             ? {
                 ...t,
-                gain: gain ?? t.gain,
-                pan: pan ?? t.pan,
-                prob: prob ?? t.prob,
-                octaveMin: octaveMin ?? t.octaveMin,
-                octaveMax: octaveMax ?? t.octaveMax,
+                gain: update.gain ?? t.gain,
+                pan: update.pan ?? t.pan,
+                prob: update.prob ?? t.prob,
+                octaveMin: update.octaveMin ?? t.octaveMin,
+                octaveMax: update.octaveMax ?? t.octaveMax,
                 dsl: commandText,
               }
             : t,
         ),
       );
-
       return;
     }
 
-    // Merge with existing track properties
-    const finalVoice = voice ?? existingTrack?.voice ?? "kick";
-    const finalGain = gain ?? existingTrack?.gain ?? 1;
-    const finalPan = pan ?? existingTrack?.pan ?? 0;
-    const finalProb = prob ?? existingTrack?.prob ?? 1;
-    const finalOffset = offset ?? existingTrack?.offset ?? 0;
-    const finalOctaveMin = octaveMin ?? existingTrack?.octaveMin ?? 2;
-    const finalOctaveMax = octaveMax ?? existingTrack?.octaveMax ?? 2;
+    // 6. Cold path — resolve state, create synth chain, store in runtime map
+    const resolved = resolveTrackState(update, existingData, key, scale);
 
-    // Determine final pattern
-    let finalPattern: string;
-    let finalParsedPattern: (number | string)[];
-
-    if (patternStr) {
-      // New base pattern was specified (pulse, arp, or standalone on)
-      finalPattern = patternStr;
-      finalParsedPattern = parsePattern(patternStr, key, scale);
-    } else if (existingTrack?.params?.pattern) {
-      // No new base pattern, start with existing pattern array
-      finalPattern = existingTrack.pattern;
-      finalParsedPattern = [...existingTrack.params.pattern];
-    } else {
-      // No pattern at all
-      finalPattern = "";
-      finalParsedPattern = [];
-    }
-
-    // Apply on/off operations to the pattern array (not string concatenation)
-    if (onSteps.length > 0) {
-      if (finalParsedPattern.length === 0) {
-        // No existing pattern, create one from on steps
-        finalParsedPattern = generateOn(onSteps);
-        finalPattern = `on:${onSteps.join(",")}`;
-      } else {
-        // Apply to existing pattern
-        finalParsedPattern = applyOnModifier(finalParsedPattern, onSteps);
-        // Don't update finalPattern string - it's just for reference
-      }
-    }
-
-    if (offSteps.length > 0) {
-      // Apply to existing pattern
-      finalParsedPattern = applyOffModifier(finalParsedPattern, offSteps);
-      // Don't update finalPattern string - it's just for reference
-    }
-
-    // Get voice configuration from kit
     if (!kit) {
       console.error("Kit not loaded yet");
       return;
     }
 
-    const voiceConfig = getVoiceConfig(kit, finalVoice);
+    const voiceConfig = getVoiceConfig(kit, resolved.voice);
     if (!voiceConfig) {
-      console.error(`Voice "${finalVoice}" not found in kit "${kit.name}"`);
+      console.error(`Voice "${resolved.voice}" not found in kit "${kit.name}"`);
       return;
     }
 
-    // Dispose of old track resources synchronously
-    if (existingTrack?.synth) {
+    // Dispose of old runtime
+    const oldRuntime = runtimeMapRef.current.get(trackId);
+    if (oldRuntime) {
       try {
-        existingTrack.synth.dispose();
+        oldRuntime.synth.dispose();
       } catch (e) {
-        // Ignore errors from disposing unstarted Players
         console.warn("Error disposing synth:", e);
       }
-    }
-    if (existingTrack?.volume) {
-      existingTrack.volume.dispose();
-    }
-    if (existingTrack?.panner) {
-      existingTrack.panner.dispose();
+      oldRuntime.volume.dispose();
+      oldRuntime.panner.dispose();
     }
 
     // Create audio chain: synth -> volume -> panner -> destination
     const synth = createSynth(voiceConfig);
-    const volume = new Tone.Volume(Tone.gainToDb(finalGain));
-    const panner = new Tone.Panner(finalPan);
-
-    // Connect the audio chain
+    const volume = new Tone.Volume(Tone.gainToDb(resolved.gain));
+    const panner = new Tone.Panner(resolved.pan);
     synth.connect(volume);
     volume.connect(panner);
     panner.toDestination();
 
-    // Apply offset to the final parsed pattern
-    const parsedPattern = applyOffset(finalParsedPattern, finalOffset);
+    // Store in runtime map
+    runtimeMapRef.current.set(trackId, { synth, volume, panner, voiceConfig });
 
-    // Create mutable params object for master clock to read
-    const params: TrackParams = {
-      prob: finalProb,
-      pattern: parsedPattern,
-      octaveMin: finalOctaveMin,
-      octaveMax: finalOctaveMax,
-    };
-
-    // Determine if track should be playing
-    const willBePlaying = shouldStop
-      ? false
-      : shouldStart
-        ? true
-        : (existingTrack?.isPlaying ?? true);
-
-    // Update tracks
-    const newTrack: Track = {
+    // Update React state with pure data
+    const newTrackData: TrackData = {
       id: trackId,
-      voice: finalVoice,
-      pattern: finalPattern,
+      voice: resolved.voice,
+      patternSpec: resolved.patternSpec,
+      parsedPattern: resolved.parsedPattern,
       dsl: commandText,
-      isPlaying: willBePlaying,
-      gain: finalGain,
-      pan: finalPan,
-      prob: finalProb,
-      offset: finalOffset,
-      octaveMin: finalOctaveMin,
-      octaveMax: finalOctaveMax,
-      synth,
-      volume,
-      panner,
-      params,
-      voiceConfig,
+      isPlaying: resolved.isPlaying,
+      gain: resolved.gain,
+      pan: resolved.pan,
+      prob: resolved.prob,
+      offset: resolved.offset,
+      octaveMin: resolved.octaveMin,
+      octaveMax: resolved.octaveMax,
     };
 
     setTracks((tracks) => {
       const filtered = tracks.filter((t) => t.id !== trackId);
-      return [...filtered, newTrack].sort((a, b) => a.id - b.id);
+      return [...filtered, newTrackData].sort((a, b) => a.id - b.id);
     });
   }
 

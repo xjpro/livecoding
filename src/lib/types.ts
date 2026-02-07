@@ -1,17 +1,13 @@
 import * as Tone from "tone";
+import type { PatternSpec, PatternValue } from "./patterns";
 
-export interface TrackParams {
-  prob: number;
-  pattern: (number | string)[];  // Parsed pattern for master clock to read
-  octaveMin: number;
-  octaveMax: number;
-}
-
-export interface Track {
+// Pure data — no Tone.js objects. This is what React state holds.
+export interface TrackData {
   id: number;
   voice: string;
-  pattern: string;  // Original pattern string (e.g., "pulse:4" - internal format)
-  dsl: string;      // Original DSL command (e.g., "t0.voice('kick').pulse(4);")
+  patternSpec: PatternSpec | null; // Structured pattern intent (no string round-trip)
+  parsedPattern: PatternValue[]; // Resolved pattern array for visualizer
+  dsl: string; // Original DSL command
   isPlaying: boolean;
   gain: number;
   pan: number;
@@ -19,11 +15,14 @@ export interface Track {
   offset: number;
   octaveMin: number;
   octaveMax: number;
-  synth?: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player;
-  volume?: Tone.Volume;
-  panner?: Tone.Panner;
-  params?: TrackParams;
-  voiceConfig?: import("./types").VoiceConfig;
+}
+
+// Live Tone.js objects — stored in a useRef, not React state
+export interface TrackRuntime {
+  synth: Tone.Synth | Tone.MembraneSynth | Tone.MetalSynth | Tone.Player;
+  volume: Tone.Volume;
+  panner: Tone.Panner;
+  voiceConfig: VoiceConfig;
 }
 
 export interface SynthVoiceConfig {

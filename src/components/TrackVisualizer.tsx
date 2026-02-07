@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import * as Tone from "tone";
-import { Track } from "../lib/types.ts";
+import { TrackData } from "../lib/types.ts";
 import "./TrackVisualizer.css";
 
 interface TrackVisualizerProps {
-  tracks: Track[];
+  tracks: TrackData[];
   globalStepRef: React.RefObject<number>;
 }
 
-function getFixedTracks(tracks: Track[]): (Track | null)[] {
-  const fixedTracks: (Track | null)[] = [];
+function getFixedTracks(tracks: TrackData[]): (TrackData | null)[] {
+  const fixedTracks: (TrackData | null)[] = [];
   for (let i = 0; i < 8; i++) {
     const track = tracks.find((t) => t.id === i);
     fixedTracks.push(track || null);
@@ -81,8 +81,8 @@ export function TrackVisualizer({
         if (track.prob !== 1) modifiers.push(`prob:${track.prob}`);
         if (track.offset !== 0) modifiers.push(`offset:${track.offset}`);
 
-        // Get the pattern array from params
-        const pattern = track.params?.pattern || [];
+        // Get the pattern array directly from TrackData
+        const pattern = track.parsedPattern;
 
         // Row class based on playing state
         const rowClass = `track-row ${track.isPlaying ? "track-row--playing" : "track-row--stopped"}`;

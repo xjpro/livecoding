@@ -3,6 +3,50 @@ import { Scale, Chord } from "tonal";
 // Pattern can be either rhythm (numbers) or notes (strings)
 export type PatternValue = number | string;
 
+// PatternSpec: discriminated union representing the intent of a pattern
+// This eliminates the string round-trip (e.g., "pulse:4" -> regex parse)
+export type PatternSpec =
+  | { type: "pulse"; hits: number; steps: number }
+  | { type: "euclid"; k: number; n: number }
+  | { type: "on"; steps: number[] }
+  | { type: "arp"; degrees: number[] };
+
+// Resolve a PatternSpec directly to a pattern array (no string round-trip)
+export function resolvePattern(
+  spec: PatternSpec,
+  key: string = "C",
+  scale: string = "major",
+): PatternValue[] {
+  switch (spec.type) {
+    case "pulse":
+      return generatePulse(spec.hits, spec.steps);
+    case "euclid":
+      return generateEuclid(spec.k, spec.n);
+    case "on":
+      return generateOn(spec.steps);
+    case "arp":
+      return generateArp(spec.degrees, key, scale);
+  }
+}
+
+// Helper function to apply octave to a note
+export function applyOctave(
+  note: string,
+  octaveMin: number,
+  octaveMax: number,
+): string {
+  // Remove existing octave number from note (e.g., "C2" -> "C")
+  const noteWithoutOctave = note.replace(/\d+$/, "");
+
+  // Pick random octave in range (inclusive)
+  const octave =
+    octaveMin === octaveMax
+      ? octaveMin
+      : Math.floor(Math.random() * (octaveMax - octaveMin + 1)) + octaveMin;
+
+  return noteWithoutOctave + octave;
+}
+
 // Parse pattern DSL: pulse:hits,steps or arp:1,5,4,1
 // Supports additive modifiers like: pulse:4|on:3,7
 export function parsePattern(
@@ -72,7 +116,7 @@ export function parsePattern(
 }
 
 // Generate pulse pattern (evenly spaced hits)
-function generatePulse(hits: number, steps: number): number[] {
+export function generatePulse(hits: number, steps: number): number[] {
   const pattern: number[] = new Array(steps).fill(0);
   if (hits === 0 || steps === 0) return pattern;
 
@@ -86,7 +130,7 @@ function generatePulse(hits: number, steps: number): number[] {
 
 // Generate Euclidean rhythm pattern using Bjorklund's algorithm
 // Distributes k hits as evenly as possible across n steps
-function generateEuclid(k: number, n: number): number[] {
+export function generateEuclid(k: number, n: number): number[] {
   const pattern: number[] = new Array(n).fill(0);
 
   // Edge cases
@@ -187,7 +231,7 @@ export function applyOffset(pattern: PatternValue[], offset: number): PatternVal
 
 // Generate arpeggio pattern based on scale degrees
 // Each degree gets 4 steps (one bar in 4/4 time)
-function generateArp(
+export function generateArp(
   degrees: number[],
   key: string,
   scaleName: string,
@@ -196,7 +240,6 @@ function generateArp(
 
   // Get scale notes
   const scaleNotes = Scale.get(`${key} ${scaleName}`).notes;
-  console.log(scaleNotes)
   if (scaleNotes.length === 0) {
     console.error(`Invalid scale: ${key} ${scaleName}`);
     return new Array(16).fill(0) as unknown as string[];
@@ -224,8 +267,6 @@ function generateArp(
       pattern.push(chordNotesWithOctave[step % chordNotesWithOctave.length]);
     }
   }
-
-  console.log(pattern)
 
   return pattern;
 }
