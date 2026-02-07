@@ -424,6 +424,7 @@ function App() {
     // Parse method calls into parameters
     let voice: string | null = null;
     let patternStr: string | null = null;
+    let onSteps: number[] = [];
     let gain: number | null = null;
     let pan: number | null = null;
     let prob: number | null = null;
@@ -445,6 +446,12 @@ function App() {
             patternStr = `pulse:${method.args[0]}`;
           } else if (method.args.length === 2) {
             patternStr = `pulse:${method.args[0]},${method.args[1]}`;
+          }
+          break;
+        case "on":
+          if (method.args.length > 0) {
+            // Collect on steps to be added to base pattern
+            onSteps = method.args.filter((arg): arg is number => typeof arg === "number");
           }
           break;
         case "arp":
@@ -501,6 +508,7 @@ function App() {
     if (
       !voice &&
       !patternStr &&
+      onSteps.length === 0 &&
       !gain &&
       !pan &&
       !prob &&
@@ -532,7 +540,7 @@ function App() {
 
     // Check if only hot parameters are changing (no recreation needed)
     const needsRecreation =
-      voice !== null || patternStr !== null || offset !== null;
+      voice !== null || patternStr !== null || onSteps.length > 0 || offset !== null;
 
     if (!needsRecreation && existingTrack) {
       // Update hot parameters directly - no synth recreation
@@ -574,7 +582,20 @@ function App() {
 
     // Merge with existing track properties
     const finalVoice = voice ?? existingTrack?.voice ?? "kick";
-    const finalPattern = patternStr ?? existingTrack?.pattern ?? "pulse:4";
+    let finalPattern = patternStr ?? existingTrack?.pattern ?? "";
+
+    // If .on() was called, append it to the pattern string
+    if (onSteps.length > 0) {
+      if (finalPattern) {
+        // Strip any existing |on: modifier from the pattern
+        const basePattern = finalPattern.split("|")[0];
+        finalPattern = `${basePattern}|on:${onSteps.join(",")}`;
+      } else {
+        // No base pattern, use on as standalone
+        finalPattern = `on:${onSteps.join(",")}`;
+      }
+    }
+
     const finalGain = gain ?? existingTrack?.gain ?? 1;
     const finalPan = pan ?? existingTrack?.pan ?? 0;
     const finalProb = prob ?? existingTrack?.prob ?? 1;

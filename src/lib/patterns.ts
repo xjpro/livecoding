@@ -4,35 +4,57 @@ import { Scale, Chord } from "tonal";
 export type PatternValue = number | string;
 
 // Parse pattern DSL: pulse:hits,steps or arp:1,5,4,1
+// Supports additive modifiers like: pulse:4|on:3,7
 export function parsePattern(
   patternStr: string,
   key: string = "C",
   scale: string = "major",
 ): PatternValue[] {
+  // Split pattern into base and modifiers (e.g., "pulse:4|on:3,7")
+  const [basePatternStr, ...modifiers] = patternStr.split("|");
+  let pattern: PatternValue[] = [];
+
+  // Parse base pattern
   // Try pulse format: pulse:hits,steps or pulse:hits
-  const colonMatch = patternStr.match(/pulse:(\d+)(?:,\s*(\d+))?/);
+  const colonMatch = basePatternStr.match(/pulse:(\d+)(?:,\s*(\d+))?/);
   if (colonMatch) {
     const hits = parseInt(colonMatch[1]);
     const steps = colonMatch[2] ? parseInt(colonMatch[2]) : 16;
-    return generatePulse(hits, steps);
+    pattern = generatePulse(hits, steps);
   }
 
   // Try old format: pulse(hits, steps)
-  const pulseMatch = patternStr.match(/pulse\((\d+),\s*(\d+)\)/);
+  const pulseMatch = basePatternStr.match(/pulse\((\d+),\s*(\d+)\)/);
   if (pulseMatch) {
     const hits = parseInt(pulseMatch[1]);
     const steps = parseInt(pulseMatch[2]);
-    return generatePulse(hits, steps);
+    pattern = generatePulse(hits, steps);
+  }
+
+  // Try on format as standalone: on:1,5,9,13
+  const onMatch = basePatternStr.match(/on:([\d,]+)/);
+  if (onMatch) {
+    const steps = onMatch[1].split(",").map((d) => parseInt(d.trim()));
+    pattern = generateOn(steps);
   }
 
   // Try arp format: arp:1,1,5,1
-  const arpMatch = patternStr.match(/arp:([\d,]+)/);
+  const arpMatch = basePatternStr.match(/arp:([\d,]+)/);
   if (arpMatch) {
     const degrees = arpMatch[1].split(",").map((d) => parseInt(d.trim()));
-    return generateArp(degrees, key, scale);
+    pattern = generateArp(degrees, key, scale);
   }
 
-  return [];
+  // Apply modifiers
+  for (const modifier of modifiers) {
+    const modOnMatch = modifier.match(/on:([\d,]+)/);
+    if (modOnMatch) {
+      const steps = modOnMatch[1].split(",").map((d) => parseInt(d.trim()));
+      pattern = applyOnModifier(pattern, steps);
+    }
+  }
+
+  return pattern;
 }
 
 // Generate euclidean rhythm pattern
@@ -46,6 +68,52 @@ function generatePulse(hits: number, steps: number): number[] {
     pattern[index] = 1;
   }
   return pattern;
+}
+
+// Generate pattern with hits on specific steps
+function generateOn(steps: number[]): number[] {
+  // Find max step to determine pattern length (default to 16)
+  const maxStep = steps.length > 0 ? Math.max(...steps) : 0;
+  const patternLength = Math.max(16, maxStep);
+  const pattern: number[] = new Array(patternLength).fill(0);
+
+  // Place hits on specified steps (1-indexed, so subtract 1)
+  for (const step of steps) {
+    if (step >= 1 && step <= patternLength) {
+      pattern[step - 1] = 1;
+    }
+  }
+
+  return pattern;
+}
+
+// Apply on modifier to existing pattern (additive - adds hits to the pattern)
+function applyOnModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
+  // Only works with rhythm patterns (number arrays)
+  if (pattern.some((val) => typeof val === "string")) {
+    console.warn("Cannot apply .on() modifier to note-based patterns (arp)");
+    return pattern;
+  }
+
+  // Clone the pattern
+  const newPattern = [...pattern] as number[];
+
+  // Expand pattern if needed to accommodate all specified steps
+  const maxStep = steps.length > 0 ? Math.max(...steps) : 0;
+  if (maxStep > newPattern.length) {
+    while (newPattern.length < maxStep) {
+      newPattern.push(0);
+    }
+  }
+
+  // Add hits on specified steps (1-indexed, so subtract 1)
+  for (const step of steps) {
+    if (step >= 1 && step <= newPattern.length) {
+      newPattern[step - 1] = 1;
+    }
+  }
+
+  return newPattern;
 }
 
 // Apply offset to a pattern by rotating it

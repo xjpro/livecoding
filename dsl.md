@@ -26,6 +26,7 @@ Global commands don't require a track number and affect all subsequent tracks.
 | Command | Description | Arguments |
 |---------|-------------|-----------|
 | `pulse(hits)` or `pulse(hits, beats)` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (defaults to 16 if omitted) |
+| `on(steps...)` | Adds hits on specific steps (additive) | Comma-separated step numbers (1-indexed). Can be used standalone (e.g., `on(1,5,9,13)`) or chained after `pulse()` to add additional hits (e.g., `pulse(4).on(3,7)`). Only works with rhythm patterns, not arpeggio patterns. |
 | `arp(degrees)` | Creates an arpeggio pattern based on scale degrees | Comma-separated scale degrees (e.g., `arp(1,1,5,1)` for I-I-V-I progression). Each degree gets 4 steps (one bar in 4/4 time). Uses chords built from the current key/scale. |
 
 ### Modifications
@@ -60,6 +61,20 @@ t2.voice('bass').pulse(8);
 t0.voice('kick').pulse(8);         // Bass drum on beats 1 and 3
 t1.voice('snare').pulse(8).offset(2);   // Snare on beats 2 and 4 (offset by 2 steps)
 t2.voice('hat').pulse(16);          // Hi-hat on 16th notes
+```
+
+### Using the On Pattern
+```
+// Standalone - creates pattern with hits on specific steps
+t0.voice('kick').on(1,5,9,13);     // Hits on steps 1, 5, 9, and 13
+t1.voice('snare').on(5,13);        // Snare on steps 5 and 13 only
+
+// Additive - adds hits to a pulse pattern
+t2.voice('kick').pulse(4);         // Creates base pulse pattern
+t2.on(3,7);                        // Adds additional hits on steps 3 and 7
+
+// Or chain them together
+t3.voice('hat').pulse(8).on(2,6,10,14);  // Pulse pattern plus extra hits
 ```
 
 ### Experimenting with Offset
