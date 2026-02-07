@@ -77,7 +77,7 @@ function generatePulse(hits: number, steps: number): number[] {
 }
 
 // Generate pattern with hits on specific steps
-function generateOn(steps: number[]): number[] {
+export function generateOn(steps: number[]): number[] {
   // Find max step to determine pattern length (default to 16)
   const maxStep = steps.length > 0 ? Math.max(...steps) : 0;
   const patternLength = Math.max(16, maxStep);
@@ -94,7 +94,7 @@ function generateOn(steps: number[]): number[] {
 }
 
 // Apply on modifier to existing pattern (additive - adds hits to the pattern)
-function applyOnModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
+export function applyOnModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
   // Only works with rhythm patterns (number arrays)
   if (pattern.some((val) => typeof val === "string")) {
     console.warn("Cannot apply .on() modifier to note-based patterns (arp)");
@@ -123,7 +123,7 @@ function applyOnModifier(pattern: PatternValue[], steps: number[]): PatternValue
 }
 
 // Apply off modifier to existing pattern (subtractive - removes hits from the pattern)
-function applyOffModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
+export function applyOffModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
   // Only works with rhythm patterns (number arrays)
   if (pattern.some((val) => typeof val === "string")) {
     console.warn("Cannot apply .off() modifier to note-based patterns (arp)");

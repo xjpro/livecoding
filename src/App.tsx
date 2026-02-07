@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import * as Tone from "tone";
 import "./App.css";
-import { parsePattern, applyOffset } from "./lib/patterns.ts";
+import { parsePattern, applyOffset, generateOn, applyOnModifier, applyOffModifier } from "./lib/patterns.ts";
 import { createSynth, triggerSynth } from "./lib/synths.ts";
 import { Track, Kit, TrackParams } from "./lib/types.ts";
 import { TrackVisualizer } from "./components/TrackVisualizer.tsx";
@@ -590,38 +590,49 @@ function App() {
 
     // Merge with existing track properties
     const finalVoice = voice ?? existingTrack?.voice ?? "kick";
-    let finalPattern = patternStr ?? existingTrack?.pattern ?? "";
-
-    // If .on() was called, append it to the pattern string
-    if (onSteps.length > 0) {
-      if (finalPattern) {
-        // Strip any existing |on: modifier from the pattern
-        const parts = finalPattern.split("|").filter(p => !p.startsWith("on:"));
-        finalPattern = `${parts.join("|")}|on:${onSteps.join(",")}`;
-      } else {
-        // No base pattern, use on as standalone
-        finalPattern = `on:${onSteps.join(",")}`;
-      }
-    }
-
-    // If .off() was called, append it to the pattern string
-    if (offSteps.length > 0) {
-      if (finalPattern) {
-        // Strip any existing |off: modifier from the pattern
-        const parts = finalPattern.split("|").filter(p => !p.startsWith("off:"));
-        finalPattern = `${parts.join("|")}|off:${offSteps.join(",")}`;
-      } else {
-        // No base pattern, off doesn't make sense but we'll allow it (will result in empty pattern)
-        finalPattern = `off:${offSteps.join(",")}`;
-      }
-    }
-
     const finalGain = gain ?? existingTrack?.gain ?? 1;
     const finalPan = pan ?? existingTrack?.pan ?? 0;
     const finalProb = prob ?? existingTrack?.prob ?? 1;
     const finalOffset = offset ?? existingTrack?.offset ?? 0;
     const finalOctaveMin = octaveMin ?? existingTrack?.octaveMin ?? 2;
     const finalOctaveMax = octaveMax ?? existingTrack?.octaveMax ?? 2;
+
+    // Determine final pattern
+    let finalPattern: string;
+    let finalParsedPattern: (number | string)[];
+
+    if (patternStr) {
+      // New base pattern was specified (pulse, arp, or standalone on)
+      finalPattern = patternStr;
+      finalParsedPattern = parsePattern(patternStr, key, scale);
+    } else if (existingTrack?.params?.pattern) {
+      // No new base pattern, start with existing pattern array
+      finalPattern = existingTrack.pattern;
+      finalParsedPattern = [...existingTrack.params.pattern];
+    } else {
+      // No pattern at all
+      finalPattern = "";
+      finalParsedPattern = [];
+    }
+
+    // Apply on/off operations to the pattern array (not string concatenation)
+    if (onSteps.length > 0) {
+      if (finalParsedPattern.length === 0) {
+        // No existing pattern, create one from on steps
+        finalParsedPattern = generateOn(onSteps);
+        finalPattern = `on:${onSteps.join(",")}`;
+      } else {
+        // Apply to existing pattern
+        finalParsedPattern = applyOnModifier(finalParsedPattern, onSteps);
+        // Don't update finalPattern string - it's just for reference
+      }
+    }
+
+    if (offSteps.length > 0) {
+      // Apply to existing pattern
+      finalParsedPattern = applyOffModifier(finalParsedPattern, offSteps);
+      // Don't update finalPattern string - it's just for reference
+    }
 
     // Get voice configuration from kit
     if (!kit) {
@@ -661,9 +672,8 @@ function App() {
     volume.connect(panner);
     panner.toDestination();
 
-    // Parse pattern and apply offset
-    const basePattern = parsePattern(finalPattern, key, scale);
-    const parsedPattern = applyOffset(basePattern, finalOffset);
+    // Apply offset to the final parsed pattern
+    const parsedPattern = applyOffset(finalParsedPattern, finalOffset);
 
     // Create mutable params object for master clock to read
     const params: TrackParams = {
