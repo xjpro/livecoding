@@ -27,6 +27,7 @@ Global commands don't require a track number and affect all subsequent tracks.
 |---------|-------------|-----------|
 | `pulse(hits)` or `pulse(hits, beats)` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (defaults to 16 if omitted) |
 | `on(steps...)` | Adds hits on specific steps (additive) | Comma-separated step numbers (1-indexed). Can be used standalone (e.g., `on(1,5,9,13)`) or chained after `pulse()` to add additional hits (e.g., `pulse(4).on(3,7)`). Only works with rhythm patterns, not arpeggio patterns. |
+| `off(steps...)` | Removes hits on specific steps (subtractive) | Comma-separated step numbers (1-indexed). Removes hits from existing pattern (e.g., `pulse(8).off(3,7)` or `t0.off(5,9)` to remove hits). Only works with rhythm patterns, not arpeggio patterns. |
 | `arp(degrees)` | Creates an arpeggio pattern based on scale degrees | Comma-separated scale degrees (e.g., `arp(1,1,5,1)` for I-I-V-I progression). Each degree gets 4 steps (one bar in 4/4 time). Uses chords built from the current key/scale. |
 
 ### Modifications
@@ -63,7 +64,7 @@ t1.voice('snare').pulse(8).offset(2);   // Snare on beats 2 and 4 (offset by 2 s
 t2.voice('hat').pulse(16);          // Hi-hat on 16th notes
 ```
 
-### Using the On Pattern
+### Using On and Off Patterns
 ```
 // Standalone - creates pattern with hits on specific steps
 t0.voice('kick').on(1,5,9,13);     // Hits on steps 1, 5, 9, and 13
@@ -73,8 +74,12 @@ t1.voice('snare').on(5,13);        // Snare on steps 5 and 13 only
 t2.voice('kick').pulse(4);         // Creates base pulse pattern
 t2.on(3,7);                        // Adds additional hits on steps 3 and 7
 
-// Or chain them together
-t3.voice('hat').pulse(8).on(2,6,10,14);  // Pulse pattern plus extra hits
+// Subtractive - removes hits from a pattern
+t3.voice('hat').pulse(16);         // Creates dense pattern
+t3.off(2,4,6,8,10,12,14,16);       // Removes every other hit
+
+// Chain them together
+t4.voice('kick').pulse(8).on(2,6,10,14).off(1);  // Pulse + extra hits - step 1
 ```
 
 ### Experimenting with Offset

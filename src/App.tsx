@@ -425,6 +425,7 @@ function App() {
     let voice: string | null = null;
     let patternStr: string | null = null;
     let onSteps: number[] = [];
+    let offSteps: number[] = [];
     let gain: number | null = null;
     let pan: number | null = null;
     let prob: number | null = null;
@@ -452,6 +453,12 @@ function App() {
           if (method.args.length > 0) {
             // Collect on steps to be added to base pattern
             onSteps = method.args.filter((arg): arg is number => typeof arg === "number");
+          }
+          break;
+        case "off":
+          if (method.args.length > 0) {
+            // Collect off steps to be removed from base pattern
+            offSteps = method.args.filter((arg): arg is number => typeof arg === "number");
           }
           break;
         case "arp":
@@ -509,6 +516,7 @@ function App() {
       !voice &&
       !patternStr &&
       onSteps.length === 0 &&
+      offSteps.length === 0 &&
       !gain &&
       !pan &&
       !prob &&
@@ -540,7 +548,7 @@ function App() {
 
     // Check if only hot parameters are changing (no recreation needed)
     const needsRecreation =
-      voice !== null || patternStr !== null || onSteps.length > 0 || offset !== null;
+      voice !== null || patternStr !== null || onSteps.length > 0 || offSteps.length > 0 || offset !== null;
 
     if (!needsRecreation && existingTrack) {
       // Update hot parameters directly - no synth recreation
@@ -588,11 +596,23 @@ function App() {
     if (onSteps.length > 0) {
       if (finalPattern) {
         // Strip any existing |on: modifier from the pattern
-        const basePattern = finalPattern.split("|")[0];
-        finalPattern = `${basePattern}|on:${onSteps.join(",")}`;
+        const parts = finalPattern.split("|").filter(p => !p.startsWith("on:"));
+        finalPattern = `${parts.join("|")}|on:${onSteps.join(",")}`;
       } else {
         // No base pattern, use on as standalone
         finalPattern = `on:${onSteps.join(",")}`;
+      }
+    }
+
+    // If .off() was called, append it to the pattern string
+    if (offSteps.length > 0) {
+      if (finalPattern) {
+        // Strip any existing |off: modifier from the pattern
+        const parts = finalPattern.split("|").filter(p => !p.startsWith("off:"));
+        finalPattern = `${parts.join("|")}|off:${offSteps.join(",")}`;
+      } else {
+        // No base pattern, off doesn't make sense but we'll allow it (will result in empty pattern)
+        finalPattern = `off:${offSteps.join(",")}`;
       }
     }
 

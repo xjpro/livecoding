@@ -52,6 +52,12 @@ export function parsePattern(
       const steps = modOnMatch[1].split(",").map((d) => parseInt(d.trim()));
       pattern = applyOnModifier(pattern, steps);
     }
+
+    const modOffMatch = modifier.match(/off:([\d,]+)/);
+    if (modOffMatch) {
+      const steps = modOffMatch[1].split(",").map((d) => parseInt(d.trim()));
+      pattern = applyOffModifier(pattern, steps);
+    }
   }
 
   return pattern;
@@ -110,6 +116,27 @@ function applyOnModifier(pattern: PatternValue[], steps: number[]): PatternValue
   for (const step of steps) {
     if (step >= 1 && step <= newPattern.length) {
       newPattern[step - 1] = 1;
+    }
+  }
+
+  return newPattern;
+}
+
+// Apply off modifier to existing pattern (subtractive - removes hits from the pattern)
+function applyOffModifier(pattern: PatternValue[], steps: number[]): PatternValue[] {
+  // Only works with rhythm patterns (number arrays)
+  if (pattern.some((val) => typeof val === "string")) {
+    console.warn("Cannot apply .off() modifier to note-based patterns (arp)");
+    return pattern;
+  }
+
+  // Clone the pattern
+  const newPattern = [...pattern] as number[];
+
+  // Remove hits on specified steps (1-indexed, so subtract 1)
+  for (const step of steps) {
+    if (step >= 1 && step <= newPattern.length) {
+      newPattern[step - 1] = 0;
     }
   }
 
