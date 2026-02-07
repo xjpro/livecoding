@@ -449,6 +449,13 @@ function App() {
             patternStr = `pulse:${method.args[0]},${method.args[1]}`;
           }
           break;
+        case "euclid":
+          if (method.args.length === 1) {
+            patternStr = `euclid:${method.args[0]}`;
+          } else if (method.args.length === 2) {
+            patternStr = `euclid:${method.args[0]},${method.args[1]}`;
+          }
+          break;
         case "on":
           if (method.args.length > 0) {
             // Collect on steps to be added to base pattern

@@ -31,6 +31,14 @@ export function parsePattern(
     pattern = generatePulse(hits, steps);
   }
 
+  // Try euclid format: euclid:k,n or euclid:k (defaults to n=16)
+  const euclidMatch = basePatternStr.match(/euclid:(\d+)(?:,\s*(\d+))?/);
+  if (euclidMatch) {
+    const k = parseInt(euclidMatch[1]);
+    const n = euclidMatch[2] ? parseInt(euclidMatch[2]) : 16;
+    pattern = generateEuclid(k, n);
+  }
+
   // Try on format as standalone: on:1,5,9,13
   const onMatch = basePatternStr.match(/on:([\d,]+)/);
   if (onMatch) {
@@ -63,7 +71,7 @@ export function parsePattern(
   return pattern;
 }
 
-// Generate euclidean rhythm pattern
+// Generate pulse pattern (evenly spaced hits)
 function generatePulse(hits: number, steps: number): number[] {
   const pattern: number[] = new Array(steps).fill(0);
   if (hits === 0 || steps === 0) return pattern;
@@ -73,6 +81,28 @@ function generatePulse(hits: number, steps: number): number[] {
     const index = Math.floor(i * interval);
     pattern[index] = 1;
   }
+  return pattern;
+}
+
+// Generate Euclidean rhythm pattern using Bjorklund's algorithm
+// Distributes k hits as evenly as possible across n steps
+function generateEuclid(k: number, n: number): number[] {
+  const pattern: number[] = new Array(n).fill(0);
+
+  // Edge cases
+  if (k === 0 || n === 0 || k > n) return pattern;
+  if (k === n) return new Array(n).fill(1);
+
+  // Bjorklund algorithm: for each step i, a hit occurs when
+  // floor((i * k) / n) != floor(((i + 1) * k) / n)
+  for (let i = 0; i < n; i++) {
+    const currentBucket = Math.floor((i * k) / n);
+    const nextBucket = Math.floor(((i + 1) * k) / n);
+    if (currentBucket !== nextBucket) {
+      pattern[i] = 1;
+    }
+  }
+
   return pattern;
 }
 

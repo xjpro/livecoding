@@ -26,7 +26,8 @@ Global commands don't require a track number and affect all subsequent tracks.
 | Command | Description | Arguments |
 |---------|-------------|-----------|
 | `pulse(hits)` or `pulse(hits, beats)` | Creates a pulse pattern | `hits` = number of hits, `beats` = total steps (defaults to 16 if omitted) |
-| `on(steps...)` | Adds hits on specific steps (additive) | Comma-separated step numbers (1-indexed). Can be used standalone (e.g., `on(1,5,9,13)`) or chained after `pulse()` to add additional hits (e.g., `pulse(4).on(3,7)`). Only works with rhythm patterns, not arpeggio patterns. |
+| `euclid(k)` or `euclid(k, n)` | Creates a Euclidean rhythm pattern | `k` = number of hits to distribute, `n` = total steps (defaults to 16 if omitted). Distributes k hits as evenly as possible across n steps, creating musically interesting syncopation when k doesn't divide n evenly. |
+| `on(steps...)` | Adds hits on specific steps (additive) | Comma-separated step numbers (1-indexed). Can be used standalone (e.g., `on(1,5,9,13)`) or chained after `pulse()` or `euclid()` to add additional hits (e.g., `pulse(4).on(3,7)`). Only works with rhythm patterns, not arpeggio patterns. |
 | `off(steps...)` | Removes hits on specific steps (subtractive) | Comma-separated step numbers (1-indexed). Removes hits from existing pattern (e.g., `pulse(8).off(3,7)` or `t0.off(5,9)` to remove hits). Only works with rhythm patterns, not arpeggio patterns. |
 | `arp(degrees)` | Creates an arpeggio pattern based on scale degrees | Comma-separated scale degrees (e.g., `arp(1,1,5,1)` for I-I-V-I progression). Each degree gets 4 steps (one bar in 4/4 time). Uses chords built from the current key/scale. |
 
@@ -62,6 +63,17 @@ t2.voice('bass').pulse(8);
 t0.voice('kick').pulse(8);         // Bass drum on beats 1 and 3
 t1.voice('snare').pulse(8).offset(2);   // Snare on beats 2 and 4 (offset by 2 steps)
 t2.voice('hat').pulse(16);          // Hi-hat on 16th notes
+```
+
+### Euclidean Rhythms
+```
+// Classic Euclidean patterns
+t0.voice('kick').euclid(5,16);      // 5 hits spread evenly across 16 steps
+t1.voice('hat').euclid(11,16);      // Dense hi-hat pattern (11 hits)
+t2.voice('snare').euclid(7,16).offset(3);  // Syncopated snare with rotation
+
+// Combine Euclidean with on/off modifiers
+t3.voice('kick').euclid(5,16).off(13).on(16);  // Euclidean pattern with tweaks
 ```
 
 ### Using On and Off Patterns
