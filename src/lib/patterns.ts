@@ -94,11 +94,12 @@ function generateEuclid(k: number, n: number): number[] {
   if (k === n) return new Array(n).fill(1);
 
   // Bjorklund algorithm: for each step i, a hit occurs when
-  // floor((i * k) / n) != floor(((i + 1) * k) / n)
+  // floor((i * k) / n) != floor(((i - 1) * k) / n)
+  // This places hits at the START of each bucket interval
   for (let i = 0; i < n; i++) {
     const currentBucket = Math.floor((i * k) / n);
-    const nextBucket = Math.floor(((i + 1) * k) / n);
-    if (currentBucket !== nextBucket) {
+    const prevBucket = i > 0 ? Math.floor(((i - 1) * k) / n) : -1;
+    if (currentBucket !== prevBucket) {
       pattern[i] = 1;
     }
   }
