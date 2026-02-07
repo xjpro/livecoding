@@ -80,7 +80,7 @@ export function TrackVisualizer({
         return (
           <div key={track.id} className={rowClass}>
             <div className="track-header">
-              t{track.id}: {track.voice} {track.pattern}{" "}
+              t{track.id}: {track.voice}{" "}
               {modifiers.length > 0 && `${modifiers.join(" ")} `}
             </div>
             {Array.from({ length: 16 }).map((_, i) => {
