@@ -21,7 +21,6 @@
   --glow-intensity: 1;
 
   /* Glow effect styling with pulsing */
-  padding: 2rem;
   border-radius: 2px;
   box-shadow:
     0 0 calc(30px * var(--glow-intensity)) calc(10px * var(--glow-intensity))

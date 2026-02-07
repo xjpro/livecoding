@@ -13,15 +13,23 @@
   transition: all 0.2s ease;
 }
 
-/* Rainbow colors for each track (red to purple) */
-.track-row:nth-child(1) { --track-color: 0, 100%, 50%; }     /* Red */
-.track-row:nth-child(2) { --track-color: 30, 100%, 50%; }    /* Orange */
-.track-row:nth-child(3) { --track-color: 60, 100%, 50%; }    /* Yellow */
-.track-row:nth-child(4) { --track-color: 120, 100%, 50%; }   /* Green */
-.track-row:nth-child(5) { --track-color: 180, 100%, 50%; }   /* Cyan */
-.track-row:nth-child(6) { --track-color: 240, 100%, 50%; }   /* Blue */
-.track-row:nth-child(7) { --track-color: 270, 100%, 45%; }   /* Indigo */
-.track-row:nth-child(8) { --track-color: 300, 100%, 50%; }   /* Purple */
+/* Header row styling */
+.track-row--header {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+/* Rainbow colors for each track (red to purple) - skip first row (header) */
+.track-row:nth-child(2) { --track-color: 0, 100%, 50%; }     /* Red */
+.track-row:nth-child(3) { --track-color: 30, 100%, 50%; }    /* Orange */
+.track-row:nth-child(4) { --track-color: 60, 100%, 50%; }    /* Yellow */
+.track-row:nth-child(5) { --track-color: 120, 100%, 50%; }   /* Green */
+.track-row:nth-child(6) { --track-color: 180, 100%, 50%; }   /* Cyan */
+.track-row:nth-child(7) { --track-color: 240, 100%, 50%; }   /* Blue */
+.track-row:nth-child(8) { --track-color: 270, 100%, 45%; }   /* Indigo */
+.track-row:nth-child(9) { --track-color: 300, 100%, 50%; }   /* Purple */
 
 .track-row--playing {
   background: hsla(var(--track-color, 0, 0%, 100%), 0.05);
@@ -99,6 +107,14 @@
 .pattern-cell--current.pattern-cell--empty {
   border-color: rgba(255, 200, 0, 0.8);
   background: rgba(255, 200, 0, 0.2);
+}
+
+.pattern-cell--step-number {
+  font-family: monospace;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.5);
+  border: none;
+  background: transparent;
 }
 
 .note-text {

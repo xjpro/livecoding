@@ -44,6 +44,16 @@ export function TrackVisualizer({
 
   return (
     <div className="track-visualizer">
+      {/* Header row with step numbers */}
+      <div className="track-row track-row--header">
+        <div className="track-header"></div>
+        {Array.from({ length: 16 }).map((_, i) => (
+          <div key={i} className="pattern-cell pattern-cell--step-number">
+            {i + 1}
+          </div>
+        ))}
+      </div>
+
       {fixedTracks.map((track, index) => {
         if (track === null) {
           // Empty track placeholder
