@@ -430,20 +430,7 @@ function App() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="// Live coding sequencer - Press Cmd/Ctrl + Enter to execute
-
-// Basic beat
-t0.voice('kick').pulse(4);
-t1.voice('hat').pulse(16);
-
-// Set key and scale
-key('C');
-scale('major');
-
-// Bass line
-t2.voice('bass').arp(1,1,5,1).oct(2);
-
-// Tip: Select code to run just that portion, or run all if nothing selected"
+            placeholder="// Live coding sequencer - Press Cmd/Ctrl + Enter to execute"
             rows={12}
             spellCheck={false}
             autoCapitalize="off"
