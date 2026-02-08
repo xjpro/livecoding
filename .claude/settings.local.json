@@ -9,7 +9,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(npx tsc:*)",
       "Bash(npx eslint:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(curl:*)"
     ]
   }
 }
