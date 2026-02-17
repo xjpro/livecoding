@@ -1,17 +1,14 @@
-// "Funky Song"
+// "Jane"
 
 setcpm(90);
 
-// samples({
-//  jane: "samples/wav/ted_speakers/JaneGoodall/sample-2.wav",
-//  },   "https://raw.githubusercontent.com/audio-samples/audio-samples.github.io/master/");
-
-// // $: s("jane");
+// samples('github:xjpro/livecoding');
+samples('http://localhost:5432/')
 
 $:s("hh").postgain(0)._punchcard();
 
 
-$: stack(
+const drums = stack(
     s("<bd ~ bd [~ bd]>"),
     s("<~ sd>").every(8, _ => s("<~ sd [~ sd]>")),
     s("hh*2").sometimesBy(0.2, x => x.fast(2)).gain(.12)
@@ -19,7 +16,7 @@ $: stack(
 
 const ch = chord("<Dm7 G7 C^7 A7>").dict("ireal")
 
-$: n(irand("<4 6 8>"))
+const melody = n(irand("<4 6 8>"))
     .set(ch)
     .mode("root:C2")
     .voicing()
@@ -33,5 +30,24 @@ $: n(irand("<4 6 8>"))
     .adsr("0.01:0.18:.6:.12")
     .lpf(330).lpa(0.01).lpd(.18).lps(.1).lpr(0.12)
 
-// .oct("< 0 1>")
-// ._scope()
+
+const vocals =
+    note(ch)
+        .s("jane-goodall")
+        .n(irand(10))
+        .splice(4, "<0 ~ 1 1 2 ~ 3 ~>")
+        // .rib("<1 2 3 4>", 1)
+        .degradeBy(.5)
+        .lpf(2200)
+        .hpf(120)
+        .room(.25)
+        .size(.8)
+        .adsr("0:.25:.75:1")
+        .delay(.15)
+        .gain(.8)
+
+$: stack(
+    // drums,
+    // melody,
+    // vocals
+)
