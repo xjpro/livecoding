@@ -1,4 +1,8 @@
 {
   "_base": "https://raw.githubusercontent.com/xjpro/livecoding/main/",
-  "jane": "samples/jane-goodall/"
+  "jane-goodall": [
+    "/samples/jane-goodall/samples_wav_ted_speakers_JaneGoodall_sample-0.wav",
+    "/samples/jane-goodall/samples_wav_ted_speakers_JaneGoodall_sample-1.wav",
+    "/samples/jane-goodall/samples_wav_ted_speakers_JaneGoodall_sample-2.wav"
+  ]
 }
