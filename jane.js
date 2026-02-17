@@ -2,11 +2,9 @@
 
 setcpm(90);
 
-// samples('github:xjpro/livecoding');
-samples('http://localhost:5432/')
+samples('github:xjpro/livecoding');
 
 $:s("hh").postgain(0)._punchcard();
-
 
 const drums = stack(
     s("<bd ~ bd [~ bd]>"),
@@ -47,7 +45,7 @@ const vocals =
         .gain(.8)
 
 $: stack(
-    // drums,
-    // melody,
-    // vocals
+    drums,
+    melody,
+    vocals
 )
