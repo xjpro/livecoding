@@ -1,4 +1,4 @@
-// ghost sounds
+// "Vampric Switch Statement"
 // minor key chords: Am Bo C Dm E F G#o
 
 setcpm(80/4);
